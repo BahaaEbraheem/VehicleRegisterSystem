@@ -1,52 +1,221 @@
-﻿@model VehicleRegisterSystem.Application.DTOs.AuthenticationDTOs.RegisterDto
+﻿@using VehicleRegisterSystem.Domain.Enums
+@using VehicleRegisterSystem.Domain.Extensions
+@model VehicleRegisterSystem.Application.DTOs.AuthenticationDTOs.RegisterDto
 @{
-    Layout = "_Layout"; // <- this makes your view use the shared layout
-    ViewData["Title"] = "Register";
+    ViewData["Title"] = "إنشاء حساب جديد - Create Account";
+    Layout = "_Layout";
 }
 
-<h2>Register</h2>
+<div class="container mt-4" dir="rtl">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-success text-white text-center">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-user-plus me-2"></i>
+                        @if (User.IsInRole(UserRole.Administrator.ToString()))
+                        {
+                            <span>إضافة مستخدم جديد - Add New User</span>
+                        }
+                        else
+                        {
+                            <span>إنشاء حساب جديد - Create New Account</span>
+                        }
+                    </h3>
+                </div>
+                <div class="card-body p-4">
 
-<form asp-action="Register" method="post">
-    <div class="form-group">
-        <label asp-for="FirstName"></label>
-        <input asp-for="FirstName" class="form-control" />
-        <span asp-validation-for="FirstName" class="text-danger"></span>
-    </div>
-    <div class="form-group">
-        <label asp-for="LastName"></label>
-        <input asp-for="LastName" class="form-control" />
-        <span asp-validation-for="LastName" class="text-danger"></span>
-    </div>
-    <div class="form-group">
-        <label asp-for="Email"></label>
-        <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
 
-    <div class="form-group">
-        <label asp-for="PhoneNumber"></label>
-        <input asp-for="PhoneNumber" class="form-control" />
-        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    <!-- نموذج التسجيل - Registration Form -->
+                    <form method="post">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FirstName" class="form-label">
+                                    <i class="fas fa-user me-1"></i>
+                                    الاسم الأول - First Name *
+                                </label>
+                                <input asp-for="FirstName" class="form-control"
+                                       placeholder="أدخل الاسم الأول - Enter first name" />
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="LastName" class="form-label">
+                                    <i class="fas fa-user me-1"></i>
+                                    الاسم الأخير - Last Name *
+                                </label>
+                                <input asp-for="LastName" class="form-control"
+                                       placeholder="أدخل الاسم الأخير - Enter last name" />
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">
+                                <i class="fas fa-envelope me-1"></i>
+                                البريد الإلكتروني - Email *
+                            </label>
+                            <input asp-for="Email" class="form-control"
+                                   placeholder="أدخل البريد الإلكتروني - Enter email"
+                                   autocomplete="email" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PhoneNumber" class="form-label">
+                                <i class="fas fa-phone me-1"></i>
+                                رقم الهاتف - Phone Number
+                            </label>
+                            <input asp-for="PhoneNumber" class="form-control"
+                                   placeholder="أدخل رقم الهاتف - Enter phone number"
+                                   autocomplete="tel" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Address" class="form-label">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                العنوان - Address
+                            </label>
+                            <textarea asp-for="Address" class="form-control" rows="2"
+                                      placeholder="أدخل العنوان - Enter address"></textarea>
+                            <span asp-validation-for="Address" class="text-danger"></span>
+                        </div>
+
+                        @if (User.IsInRole(UserRole.Administrator.ToString()))
+                        {
+                            <div class="mb-3">
+                                <label asp-for="Role" class="form-label">
+                                    <i class="fas fa-user-shield me-1"></i>
+                                    دور المستخدم - User Role
+                                </label>
+                                <select asp-for="Role" class="form-select">
+                                    <option value="@UserRole.User">@UserRole.User.GetDescription()</option>
+                                    <option value="@UserRole.Administrator">@UserRole.Administrator.GetDescription()</option>
+                                    <option value="@UserRole.OrderValidator">@UserRole.OrderValidator.GetDescription()</option>
+                                    <option value="@UserRole.BoardRegistrar">@UserRole.BoardRegistrar.GetDescription()</option>
+                                </select>
+                                <span asp-validation-for="Role" class="text-danger"></span>
+                            </div>
+                        }
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Password" class="form-label">
+                                    <i class="fas fa-lock me-1"></i>
+                                    كلمة المرور - Password *
+                                </label>
+                                <div class="input-group">
+                                    <input asp-for="Password" class="form-control"
+                                           type="password" id="passwordInput"
+                                           placeholder="أدخل كلمة المرور - Enter password"
+                                           autocomplete="new-password" />
+                                    <button class="btn btn-outline-secondary" type="button"
+                                            onclick="togglePassword('passwordInput', 'togglePasswordIcon1')">
+                                        <i class="fas fa-eye" id="togglePasswordIcon1"></i>
+                                    </button>
+                                </div>
+                                <small class="form-text text-muted">
+                                    يجب أن تكون كلمة المرور 6 أحرف على الأقل - Password must be at least 6 characters
+                                </small>
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ConfirmPassword" class="form-label">
+                                    <i class="fas fa-lock me-1"></i>
+                                    تأكيد كلمة المرور - Confirm Password *
+                                </label>
+                                <div class="input-group">
+                                    <input asp-for="ConfirmPassword" class="form-control"
+                                           type="password" id="confirmPasswordInput"
+                                           placeholder="أعد إدخال كلمة المرور - Re-enter password"
+                                           autocomplete="new-password" />
+                                    <button class="btn btn-outline-secondary" type="button"
+                                            onclick="togglePassword('confirmPasswordInput', 'togglePasswordIcon2')">
+                                        <i class="fas fa-eye" id="togglePasswordIcon2"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>
+                                @if (User.IsInRole(UserRole.Administrator.ToString()))
+
+                                {
+                                    <span>إضافة المستخدم - Add User</span>
+                                }
+                                else
+                                {
+                                    <span>إنشاء الحساب - Create Account</span>
+                                }
+                            </button>
+                        </div>
+                    </form>
+
+                    @if (User.IsInRole(UserRole.Administrator.ToString()))
+
+                    {
+                        <hr class="my-4">
+                        <div class="text-center">
+                            <p class="mb-2">لديك حساب بالفعل؟ - Already have an account?</p>
+                            <a href="/Auth/Login" class="btn btn-outline-primary">
+                                <i class="fas fa-sign-in-alt me-1"></i>
+                                تسجيل الدخول - Login
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 
-    <div class="form-group">
-        <label asp-for="Password"></label>
-        <input asp-for="Password" type="password" class="form-control" />
-        <span asp-validation-for="Password" class="text-danger"></span>
-    </div>
+<script>
+    function togglePassword(inputId, iconId) {
+        const passwordInput = document.getElementById(inputId);
+        const toggleIcon = document.getElementById(iconId);
 
-    <div class="form-group">
-        <label asp-for="ConfirmPassword"></label>
-        <input asp-for="ConfirmPassword" type="password" class="form-control" />
-        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-    </div>
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+        }
+    }
 
-    <button type="submit" class="btn btn-success">Register</button>
-</form>
+    // Auto-focus on first name input
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstNameInput = document.querySelector('input[name="FirstName"]');
+        if (firstNameInput) {
+            firstNameInput.focus();
+        }
+    });
+</script>
 
-<p>
-    <a asp-action="Login">Already have an account? Login</a>
-</p>
+<style>
+    .card {
+        border-radius: 15px;
+    }
+
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+    }
+
+    .btn {
+        border-radius: 8px;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+    }
+</style>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

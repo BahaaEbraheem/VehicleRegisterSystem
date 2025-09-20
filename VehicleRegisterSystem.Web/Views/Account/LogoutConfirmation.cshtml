@@ -27,7 +27,8 @@
                                 <strong>المستخدم الحالي - Current User:</strong> @Model.CurrentUserName
                                 @if (!string.IsNullOrEmpty(Model.CurrentUserEmail))
                                 {
-                                    <br />
+                                    <br>
+
                                     <small class="text-muted">@Model.CurrentUserEmail</small>
                                 }
                             </div>
@@ -35,19 +36,20 @@
 
                         <p class="small text-muted">
                             سيتم إنهاء جلستك الحالية وستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى النظام.
+                            <br>
+                            Your current session will be ended and you'll need to login again to access the system.
                         </p>
                     </div>
 
                     <div class="d-grid gap-2">
-                        <form method="post" asp-action="Logout">
-                            @Html.AntiForgeryToken()
+                        <form method="post" class="d-inline">
                             <button type="submit" class="btn btn-warning btn-lg w-100 mb-2">
                                 <i class="fas fa-sign-out-alt me-2"></i>
                                 نعم، تسجيل الخروج - Yes, Logout
                             </button>
                         </form>
 
-                        <a href="/" class="btn btn-outline-secondary btn-lg">
+                        <a href="/Books/Index" class="btn btn-outline-secondary btn-lg">
                             <i class="fas fa-arrow-left me-2"></i>
                             إلغاء والعودة - Cancel & Go Back
                         </a>
@@ -64,3 +66,41 @@
         </div>
     </div>
 </div>
+
+<style>
+    .card {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+    }
+
+    .btn {
+        border-radius: 8px;
+    }
+
+    .fa-question-circle {
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.05);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .card-footer {
+        border-radius: 0 0 15px 15px !important;
+    }
+</style>
+

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,9 +23,11 @@ namespace VehicleRegisterSystem.Application.Services
         private readonly IUserRepository _userRepository;
         private readonly ILogger<AuthenticationService> _logger;
         private readonly IJwtService _jwtService;
+        private readonly IPasswordHasher<ApplicationUser> _passwordHasher;
 
-        public AuthenticationService(IJwtService jwtService, IUserRepository userRepository, ILogger<AuthenticationService> logger)
+        public AuthenticationService(IPasswordHasher<ApplicationUser> passwordHasher,IJwtService jwtService, IUserRepository userRepository, ILogger<AuthenticationService> logger)
         {
+            _passwordHasher = passwordHasher;
             _jwtService = jwtService;
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -91,46 +94,42 @@ namespace VehicleRegisterSystem.Application.Services
         /// تسجيل مستخدم جديد
         /// Register new user
         /// </summary>
-        public async Task<ServiceResult<int>> RegisterAsync(RegisterDto registerDto)
+        public async Task<ServiceResult<string>> RegisterAsync(RegisterDto registerDto)
         {
             try
             {
-                _logger.LogDebug("محاولة تسجيل مستخدم جديد: {Email} - Attempting to register new user: {Email}",
-                    registerDto.Email, registerDto.Email);
+                _logger.LogDebug("Attempting to register new user: {Email}", registerDto.Email);
 
-                // التحقق من وجود البريد الإلكتروني
-                // Check if email exists
-                var emailExistsResult = await EmailExistsAsync(registerDto.Email);
-                if (emailExistsResult.IsSuccess && emailExistsResult.Data)
-                {
-                    _logger.LogWarning("فشل التسجيل: البريد الإلكتروني موجود مسبقاً - Registration failed: Email already exists. Email: {Email}",
-                        registerDto.Email);
-                    return ServiceResult<int>.Failure("البريد الإلكتروني موجود مسبقاً - Email already exists");
-                }
+                var emailExists = await EmailExistsAsync(registerDto.Email);
+                if (emailExists.IsSuccess && emailExists.Data)
+                    return ServiceResult<string>.Failure("Email already exists");
 
-                // إنشاء مستخدم جديد
-                // Create new user
                 var user = new ApplicationUser
                 {
                     Email = registerDto.Email.Trim().ToLowerInvariant(),
                     PhoneNumber = registerDto.PhoneNumber?.Trim(),
-                    PasswordHash = HashPassword(registerDto.Password),
-                 
+                    FullName = $"{registerDto.FirstName} {registerDto.LastName}",
+                    Role = registerDto.Role
                 };
+
+                user.PasswordHash = _passwordHasher.HashPassword(user, registerDto.Password);
 
                 var userId = await _userRepository.AddAsync(user);
 
-                _logger.LogInformation("تم تسجيل مستخدم جديد بنجاح: {Email}, UserId: {UserId} - Successfully registered new user: {Email}, UserId: {UserId}",
-                    registerDto.Email, userId, registerDto.Email, userId);
+                // Assign role if admin or default to User
+                await _userRepository.AssignRoleAsync(userId, registerDto.Role);
 
-                return ServiceResult<int>.Success(userId);
+                _logger.LogInformation("Successfully registered new user: {Email}, UserId: {UserId}", registerDto.Email, userId);
+
+                return ServiceResult<string>.Success(user.FullName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "خطأ في تسجيل مستخدم جديد - Error during user registration");
-                return ServiceResult<int>.Failure("حدث خطأ أثناء تسجيل المستخدم - An error occurred during user registration");
+                _logger.LogError(ex, "Error during user registration");
+                return ServiceResult<string>.Failure("An error occurred during user registration");
             }
         }
+
 
         /// <summary>
         /// تغيير كلمة المرور

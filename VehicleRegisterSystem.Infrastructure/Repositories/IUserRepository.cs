@@ -1,4 +1,5 @@
 using VehicleRegisterSystem.Domain;
+using VehicleRegisterSystem.Domain.Enums;
 
 namespace VehicleRegisterSystem.Infrastructure.Repositories
 {
@@ -67,6 +68,16 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
         /// Check if user exists by email
         /// </summary>
         Task<bool> ExistsByEmailAsync(string email);
+
+        /// <summary>
+        /// Assign a role to a user
+        /// </summary>
+        Task AssignRoleAsync(int userId, UserRole role);
+
+        /// <summary>
+        /// Get roles of a user
+        /// </summary>
+        Task<IEnumerable<UserRole>> GetRolesAsync(int userId);
     }
 
 

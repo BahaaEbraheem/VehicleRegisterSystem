@@ -1,73 +1,177 @@
-
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using System.Data;
 using VehicleRegisterSystem.Domain;
+using VehicleRegisterSystem.Domain.Enums;
 
 namespace VehicleRegisterSystem.Infrastructure.Repositories
 {
     /// <summary>
     /// تنفيذ مستودع المستخدمين
-    /// User repository implementation
+    /// User repository implementation using ASP.NET Core Identity
     /// </summary>
     public class UserRepository : IUserRepository
     {
         private readonly ILogger<UserRepository> _logger;
-        private readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(30);
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public UserRepository(
-            ILogger<UserRepository> logger)
+        public UserRepository(ILogger<UserRepository> logger, UserManager<ApplicationUser> userManager)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         }
 
-        public Task<int> AddAsync(ApplicationUser user)
+        /// <summary>
+        /// إضافة مستخدم جديد
+        /// Add a new user
+        /// </summary>
+        public async Task<int> AddAsync(ApplicationUser user)
         {
-            throw new NotImplementedException();
+            if (user == null) throw new ArgumentNullException(nameof(user));
+
+            var result = await _userManager.CreateAsync(user, user.PasswordHash); // PasswordHash contains plain password here
+            if (!result.Succeeded)
+            {
+                _logger.LogError("Failed to create user: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
+                throw new Exception("Failed to create user.");
+            }
+
+            // Return the user's ID as int (assuming ApplicationUser.Id is int; if string, adjust accordingly)
+            return int.Parse(user.Id);
         }
 
-        public Task<bool> DeleteAsync(int id)
+        /// <summary>
+        /// حذف مستخدم
+        /// Delete a user by ID
+        /// </summary>
+        public async Task<bool> DeleteAsync(int id)
         {
-            throw new NotImplementedException();
+            var user = await _userManager.FindByIdAsync(id.ToString());
+            if (user == null) return false;
+
+            var result = await _userManager.DeleteAsync(user);
+            return result.Succeeded;
         }
 
-        public Task<bool> ExistsByEmailAsync(string email)
+        /// <summary>
+        /// التحقق من وجود مستخدم بالبريد الإلكتروني
+        /// Check if a user exists by email
+        /// </summary>
+        public async Task<bool> ExistsByEmailAsync(string email)
         {
-            throw new NotImplementedException();
+            var user = await _userManager.FindByEmailAsync(email.Trim().ToLowerInvariant());
+            return user != null;
         }
 
-        public Task<IEnumerable<ApplicationUser>> GetActiveUsersAsync()
+        /// <summary>
+        /// الحصول على جميع المستخدمين النشطين
+        /// Get all active users (non-deleted)
+        /// </summary>
+        public async Task<IEnumerable<ApplicationUser>> GetActiveUsersAsync()
         {
-            throw new NotImplementedException();
+            return _userManager.Users.Where(u => u.LockoutEnabled == false).ToList();
         }
 
-        public Task<IEnumerable<ApplicationUser>> GetAllAsync()
+        /// <summary>
+        /// الحصول على جميع المستخدمين
+        /// Get all users
+        /// </summary>
+        public async Task<IEnumerable<ApplicationUser>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            return _userManager.Users.ToList();
         }
 
-        public Task<ApplicationUser?> GetByEmailAsync(string email, int? excludeUserId = null)
+        /// <summary>
+        /// الحصول على مستخدم بالبريد الإلكتروني
+        /// Get a user by email
+        /// </summary>
+        public async Task<ApplicationUser?> GetByEmailAsync(string email, int? excludeUserId = null)
         {
-            throw new NotImplementedException();
+            var user = await _userManager.FindByEmailAsync(email.Trim().ToLowerInvariant());
+            if (user != null && excludeUserId.HasValue && user.Id == excludeUserId.ToString())
+                return null;
+
+            return user;
         }
 
-        public Task<ApplicationUser?> GetByIdAsync(int id)
+        /// <summary>
+        /// الحصول على مستخدم بالمعرف
+        /// Get a user by ID
+        /// </summary>
+        public async Task<ApplicationUser?> GetByIdAsync(int id)
         {
-            throw new NotImplementedException();
+            return await _userManager.FindByIdAsync(id.ToString());
         }
 
-        public Task<IEnumerable<ApplicationUser>> SearchUsersAsync(string searchTerm)
+        /// <summary>
+        /// البحث عن المستخدمين
+        /// Search users by email or name
+        /// </summary>
+        public async Task<IEnumerable<ApplicationUser>> SearchUsersAsync(string searchTerm)
         {
-            throw new NotImplementedException();
+            searchTerm = searchTerm?.Trim().ToLower() ?? "";
+            return _userManager.Users
+                .Where(u => u.Email.ToLower().Contains(searchTerm) ||
+                            u.FullName.ToLower().Contains(searchTerm))
+                .ToList();
         }
 
-        public Task<bool> SetActiveStatusAsync(int id, bool isActive)
+        /// <summary>
+        /// تفعيل أو إلغاء تفعيل مستخدم
+        /// Activate or deactivate a user
+        /// </summary>
+        public async Task<bool> SetActiveStatusAsync(int id, bool isActive)
         {
-            throw new NotImplementedException();
+            var user = await _userManager.FindByIdAsync(id.ToString());
+            if (user == null) return false;
+
+            user.LockoutEnabled = !isActive; // LockoutEnabled false = active
+            var result = await _userManager.UpdateAsync(user);
+            return result.Succeeded;
         }
 
-        public Task<bool> UpdateAsync(ApplicationUser user)
+        /// <summary>
+        /// تحديث مستخدم موجود
+        /// Update existing user
+        /// </summary>
+        public async Task<bool> UpdateAsync(ApplicationUser user)
         {
-            throw new NotImplementedException();
+            var existingUser = await _userManager.FindByIdAsync(user.Id);
+            if (existingUser == null) return false;
+
+            existingUser.FullName = user.FullName;
+            existingUser.Email = user.Email;
+            existingUser.PhoneNumber = user.PhoneNumber;
+
+            var result = await _userManager.UpdateAsync(existingUser);
+            return result.Succeeded;
+        }
+
+        /// <summary>
+        /// Assign a role to a user
+        /// </summary>
+        public async Task AssignRoleAsync(int userId, UserRole role)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user != null)
+            {
+                var roleName = role.ToString();
+                if (!await _userManager.IsInRoleAsync(user, roleName))
+                {
+                    await _userManager.AddToRoleAsync(user, roleName);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get roles of a user
+        /// </summary>
+        public async Task<IEnumerable<UserRole>> GetRolesAsync(int userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null) return Enumerable.Empty<UserRole>();
+
+            var roles = await _userManager.GetRolesAsync(user);
+            return roles.Select(r => Enum.Parse<UserRole>(r));
         }
     }
 }

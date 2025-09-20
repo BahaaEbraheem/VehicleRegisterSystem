@@ -20,7 +20,7 @@ namespace VehicleRegisterSystem.Application.Interfaces
         /// تسجيل مستخدم جديد
         /// Register new user
         /// </summary>
-        Task<ServiceResult<int>> RegisterAsync(RegisterDto registerDto);
+        Task<ServiceResult<string>> RegisterAsync(RegisterDto registerDto);
 
         /// <summary>
         /// تغيير كلمة المرور
