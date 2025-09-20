@@ -8,6 +8,6 @@ namespace VehicleRegisterSystem.Application.DTOs
 {
     public class UpdateOrderDto : CreateOrderDto
     {
-    
+        public Guid Id { get; set; }
     }
 }

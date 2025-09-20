@@ -1,0 +1,59 @@
+﻿@model IEnumerable<VehicleRegisterSystem.Application.DTOs.OrderDto>
+@{
+    ViewData["Title"] = "طلباتي - My Orders";
+}
+
+<div class="container mt-4">
+    <h2>@ViewData["Title"]</h2>
+    <hr />
+
+    <a asp-action="Create" class="btn btn-primary mb-3">إنشاء طلب جديد</a>
+
+    <table class="table table-bordered table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>الاسم الكامل</th>
+                <th>الرقم الوطني</th>
+                <th>اسم الأم</th>
+                <th>السيارة</th>
+                <th>الموديل</th>
+                <th>سنة الصنع</th>
+                <th>الحالة</th>
+                <th>سبب الإعادة</th>
+                <th>رقم اللوحة</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var order in Model)
+            {
+                var statusClass = order.Status switch
+                {
+                    VehicleRegisterSystem.Domain.Enums.OrderStatus.New => "table-primary",
+                    VehicleRegisterSystem.Domain.Enums.OrderStatus.InProgress => "table-warning",
+                    VehicleRegisterSystem.Domain.Enums.OrderStatus.Approved => "table-success",
+                    VehicleRegisterSystem.Domain.Enums.OrderStatus.Returned => "table-danger",
+                    _ => ""
+                };
+                <tr class="@statusClass">
+                    <td>@order.FullName</td>
+                    <td>@order.NationalNumber</td>
+                    <td>@order.MotherName</td>
+                    <td>@order.CarName</td>
+                    <td>@order.Model</td>
+                    <td>@order.YearOfManufacture</td>
+                    <td>@order.Status</td>
+                    <td>@order.ReturnComment</td>
+                    <td>@order.BoardNumber</td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@order.Id" class="btn btn-sm btn-warning">تعديل</a>
+                        <form asp-action="Delete" asp-route-id="@order.Id" method="post" class="d-inline"
+                              onsubmit="return confirm('هل أنت متأكد من حذف الطلب؟');">
+                            <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

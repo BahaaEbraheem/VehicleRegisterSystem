@@ -126,7 +126,7 @@
                             @if (isUser)
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link" href="/Orders/MyOrders">
+                                    <a class="nav-link" href="/Orders/Index">
                                         <i class="fas fa-car me-1"></i> طلباتي
                                     </a>
                                 </li>
@@ -139,13 +139,13 @@
                             else if (isOrderValidator)
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link" href="/Orders/PendingValidation">
+                                    <a class="nav-link" href="/OrderValidator/PendingValidation">
                                         <i class="fas fa-tasks me-1"></i> الطلبات الجديدة
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="/Orders/InReview">
-                                        <i class="fas fa-search me-1"></i> الطلبات قيد التحقق
+                                    <a class="nav-link" href="/OrderValidator/InReview">
+                                        <i class="fas fa-search me-1"></i> الطلبات قيد الإجراء
                                     </a>
                                 </li>
                             }

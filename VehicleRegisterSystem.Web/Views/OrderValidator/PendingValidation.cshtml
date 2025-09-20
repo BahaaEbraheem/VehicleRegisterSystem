@@ -1,0 +1,43 @@
+﻿@model IEnumerable<VehicleRegisterSystem.Application.DTOs.OrderDto>
+@{
+    ViewData["Title"] = "الطلبات الجديدة";
+}
+
+<h2>الطلبات الجديدة</h2>
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success">@TempData["Message"]</div>
+}
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>رقم الطلب</th>
+            <th>اسم مقدم الطلب</th>
+            <th>اسم السيارة</th>
+            <th>موديل</th>
+            <th>سنة الصنع</th>
+            <th>رقم المحرك</th>
+            <th>تاريخ الطلب</th>
+            <th>الإجراءات</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var order in Model)
+        {
+            <tr>
+                <td>@order.Id</td>
+                <td>@order.FullName</td>
+                <td>@order.CarName</td>
+                <td>@order.Model</td>
+                <td>@order.YearOfManufacture</td>
+                <td>@order.EngineNumber</td>
+                <td>@order.CreatedAt.ToString("yyyy-MM-dd")</td>
+                <td>
+                    <a class="btn btn-primary btn-sm" href="@Url.Action("ValidateOrder", "OrderValidator", new { id = order.Id })">تدقيق الطلب</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

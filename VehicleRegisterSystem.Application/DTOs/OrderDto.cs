@@ -22,6 +22,8 @@ namespace VehicleRegisterSystem.Application.DTOs
         public string EngineNumber { get; set; }
         public DateTime CreatedAt { get; set; }
         public OrderStatus Status { get; set; }
+        public string? ReturnComment { get; set; }
+
         public DateTime? StatusChangedAt { get; set; }
         public string StatusChangedById { get; set; }
         public string StatusChangedByName { get; set; }

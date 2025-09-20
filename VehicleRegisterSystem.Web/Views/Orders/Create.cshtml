@@ -1,0 +1,89 @@
+﻿@model VehicleRegisterSystem.Application.DTOs.CreateOrderDto
+@{
+    ViewData["Title"] = "إنشاء طلب جديد - Create Order";
+}
+
+<div class="container mt-4">
+    <h2>@ViewData["Title"]</h2>
+    <hr />
+
+    @* ✅ مكان للأخطاء العامة *@
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    @* ✅ مكان لرسائل النجاح *@
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Message"]
+        </div>
+    }
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label asp-for="FullName" class="form-label"></label>
+                <input asp-for="FullName" class="form-control" />
+                <span asp-validation-for="FullName" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="NationalNumber" class="form-label"></label>
+                <input asp-for="NationalNumber" class="form-control" />
+                <span asp-validation-for="NationalNumber" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="MotherName" class="form-label"></label>
+                <input asp-for="MotherName" class="form-control" />
+                <span asp-validation-for="MotherName" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label asp-for="CarName" class="form-label"></label>
+                <input asp-for="CarName" class="form-control" />
+                <span asp-validation-for="CarName" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Model" class="form-label"></label>
+                <input asp-for="Model" class="form-control" />
+                <span asp-validation-for="Model" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="YearOfManufacture" class="form-label"></label>
+                <input asp-for="YearOfManufacture" class="form-control" type="number" min="1900" max="@DateTime.Now.Year" />
+                <span asp-validation-for="YearOfManufacture" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label asp-for="Color" class="form-label"></label>
+                <input asp-for="Color" class="form-control" />
+                <span asp-validation-for="Color" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="EngineNumber" class="form-label"></label>
+                <input asp-for="EngineNumber" class="form-control" />
+                <span asp-validation-for="EngineNumber" class="text-danger"></span>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">حفظ</button>
+        <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

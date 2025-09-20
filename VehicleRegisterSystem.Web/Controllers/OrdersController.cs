@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using VehicleRegisterSystem.Application.DTOs;
 using VehicleRegisterSystem.Application.Interfaces;
+using VehicleRegisterSystem.Application.Services;
 
 namespace VehicleRegisterSystem.Web.Controllers
 {
@@ -18,7 +19,7 @@ namespace VehicleRegisterSystem.Web.Controllers
         private string UserName => User.Identity?.Name ?? "";
 
         // عرض كل الطلبات للمستخدم الحالي
-        public async Task<IActionResult> MyOrders()
+        public async Task<IActionResult> Index()
         {
             var orders = await _service.GetForUserAsync(UserId);
             return View(orders); // MyOrders.cshtml
@@ -33,11 +34,46 @@ namespace VehicleRegisterSystem.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateOrderDto dto)
         {
-            if (!ModelState.IsValid) return View(dto);
+            if (!ModelState.IsValid)
+            {
+                // جمع جميع أخطاء التحقق
+                var errors = ModelState
+                    .SelectMany(x => x.Value.Errors)
+                    .Select(x => x.ErrorMessage)
+                    .ToList();
 
-            await _service.CreateAsync(dto, UserId, UserName);
-            return RedirectToAction(nameof(MyOrders));
+                // تسجيل الأخطاء في Debug Output
+                foreach (var error in errors)
+                {
+                    System.Diagnostics.Debug.WriteLine(error);
+                }
+
+                // مؤقت: عرض الأخطاء في TempData (للتجربة فقط)
+                TempData["ModelErrors"] = string.Join(" | ", errors);
+
+                return View(dto);
+            }
+
+            var result = await _service.CreateAsync(dto, UserId, UserName);
+
+            if (!result.IsSuccess)
+            {
+                if (result.ValidationErrors.Any())
+                {
+                    foreach (var err in result.ValidationErrors)
+                        ModelState.AddModelError(string.Empty, err);
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "حدث خطأ غير معروف");
+                }
+                return View(dto);
+            }
+
+            TempData["Message"] = "تم إنشاء الطلب بنجاح";
+            return RedirectToAction("Index");
         }
+
 
         // تعديل الطلب — GET
         [HttpGet]
@@ -69,7 +105,7 @@ namespace VehicleRegisterSystem.Web.Controllers
             if (!ModelState.IsValid) return View(dto);
 
             await _service.UpdateAsync(id, dto, UserId, UserName);
-            return RedirectToAction(nameof(MyOrders));
+            return RedirectToAction(nameof(Index));
         }
 
         // حذف الطلب
@@ -77,8 +113,16 @@ namespace VehicleRegisterSystem.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _service.DeleteAsync(id, UserId, UserName);
-            return RedirectToAction(nameof(MyOrders));
+            try
+            {
+                await _service.DeleteAsync(id, UserId, UserName);
+                TempData["SuccessMessage"] = "تم حذف الطلب بنجاح";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "حدث خطأ أثناء الحذف: " + ex.Message;
+            }
+            return RedirectToAction(nameof(Index));
         }
 
     }

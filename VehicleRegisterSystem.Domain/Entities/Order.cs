@@ -29,19 +29,22 @@ namespace VehicleRegisterSystem.Domain.Entities
 
         public OrderStatus Status { get; set; } = OrderStatus.New;
         public DateTime? StatusChangedAt { get; set; }
-        public string StatusChangedById { get; set; }
-        public string StatusChangedByName { get; set; }
+        public string? StatusChangedById { get; set; }
+        public string? StatusChangedByName { get; set; }
 
-        public string BoardNumber { get; set; }
-
+        public string? BoardNumber { get; set; }
+        public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
-        public string DeletedById { get; set; }
-        public string DeletedByName { get; set; }
+        public string? DeletedById { get; set; }
+        public string? DeletedByName { get; set; }
 
         public DateTime? ModifiedAt { get; set; }
-        public string ModifiedById { get; set; }
-        public string ModifiedByName { get; set; }
-
+        public string? ModifiedById { get; set; }
+        public string? ModifiedByName { get; set; }
+        /// <summary>
+        /// سبب إعادة الطلب للمستخدم
+        /// </summary>
+        public string? ReturnComment { get; set; }
         [Timestamp]
         public byte[] RowVersion { get; set; }
     }

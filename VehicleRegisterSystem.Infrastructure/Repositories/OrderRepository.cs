@@ -28,17 +28,22 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
 
         public async Task<Order> GetByIdAsync(Guid id)
         {
-            return await _db.Orders.FirstOrDefaultAsync(o => o.Id == id);
+            return await _db.Orders.FirstOrDefaultAsync(o => o.Id == id && !o.IsDeleted);
         }
 
         public async Task<IEnumerable<Order>> GetByStatusAsync(OrderStatus status)
         {
-            return await _db.Orders.Where(o => o.Status == status).AsNoTracking().ToListAsync();
+            return await _db.Orders
+                              .Where(o => o.Status == status && !o.IsDeleted)
+                              .ToListAsync();
         }
 
         public async Task<IEnumerable<Order>> GetByUserAsync(string userId)
         {
-            return await _db.Orders.Where(o => o.CreatedById == userId).AsNoTracking().ToListAsync();
+            return await _db.Orders
+                             .Where(o => o.CreatedById == userId && !o.IsDeleted)
+                             .AsNoTracking()
+                             .ToListAsync();
         }
 
         public async Task UpdateAsync(Order order)
@@ -50,7 +55,7 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
         public async Task<bool> EngineNumberExistsAsync(string engineNumber, Guid? excludeOrderId = null)
         {
             if (string.IsNullOrWhiteSpace(engineNumber)) return false;
-            var q = _db.Orders.AsQueryable().Where(o => o.EngineNumber == engineNumber);
+            var q = _db.Orders.AsQueryable().Where(o => o.EngineNumber == engineNumber &&  !o.IsDeleted);
             if (excludeOrderId.HasValue) q = q.Where(o => o.Id != excludeOrderId.Value);
             return await q.AnyAsync();
         }
@@ -58,7 +63,7 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
         public async Task<bool> BoardNumberExistsAsync(string boardNumber, Guid? excludeOrderId = null)
         {
             if (string.IsNullOrWhiteSpace(boardNumber)) return false;
-            var q = _db.Orders.AsQueryable().Where(o => o.BoardNumber == boardNumber);
+            var q = _db.Orders.Where(o => o.BoardNumber == boardNumber && !o.IsDeleted);
             if (excludeOrderId.HasValue) q = q.Where(o => o.Id != excludeOrderId.Value);
             return await q.AnyAsync();
         }

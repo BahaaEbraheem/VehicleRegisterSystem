@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using VehicleRegisterSystem.Application.DTOs;
 using VehicleRegisterSystem.Application.Interfaces;
+using VehicleRegisterSystem.Application.Validation;
 using VehicleRegisterSystem.Domain;
 using VehicleRegisterSystem.Domain.Entities;
 using VehicleRegisterSystem.Domain.Enums;
@@ -22,12 +23,29 @@ namespace VehicleRegisterSystem.Application.Services
             _cache = cache;
         }
 
-        public async Task<OrderDto> CreateAsync(CreateOrderDto dto, string userId, string userName)
+        public async Task<ServiceResult<OrderDto>> CreateAsync(CreateOrderDto dto, string userId, string userName)
         {
-            // duplication check
-            if (await _repo.EngineNumberExistsAsync(dto.EngineNumber))
-                throw new InvalidOperationException("Duplicate engine number");
+            //// ✅ التحقق: رقم المحرك مكرر
+            //if (await _repo.EngineNumberExistsAsync(dto.EngineNumber))
+            //    return ServiceResult<OrderDto>.Failure("رقم المحرك مكرر. الرجاء إدخال رقم آخر.", "DUPLICATE_ENGINE");
 
+            // ✅ التحقق: البيانات الأساسية
+            var validationErrors = new List<string>();
+            if (string.IsNullOrWhiteSpace(dto.FullName))
+                validationErrors.Add("اسم مقدم الطلب مطلوب.");
+            if (string.IsNullOrWhiteSpace(dto.NationalNumber))
+                validationErrors.Add("الرقم الوطني مطلوب.");
+            if (string.IsNullOrWhiteSpace(dto.CarName))
+                validationErrors.Add("اسم السيارة مطلوب.");
+            if (string.IsNullOrWhiteSpace(dto.Model))
+                validationErrors.Add("الموديل مطلوب.");
+            if (dto.YearOfManufacture <= 0)
+                validationErrors.Add("سنة الصنع غير صحيحة.");
+
+            if (validationErrors.Any())
+                return ServiceResult<OrderDto>.ValidationFailure(validationErrors);
+
+            // ✅ الإنشاء
             var order = new Order
             {
                 CreatedById = userId,
@@ -46,8 +64,10 @@ namespace VehicleRegisterSystem.Application.Services
 
             await _repo.AddAsync(order);
             _cache.Remove($"user_orders_{userId}");
-            return Map(order);
+
+            return ServiceResult<OrderDto>.Success(Map(order));
         }
+
 
         public async Task DeleteAsync(Guid id, string userId, string userName)
         {
@@ -55,6 +75,7 @@ namespace VehicleRegisterSystem.Application.Services
             if (order.Status != OrderStatus.New && order.Status != OrderStatus.Returned)
                 throw new InvalidOperationException("Cannot delete in current state");
             // soft delete
+            order.IsDeleted = true;
             order.DeletedAt = DateTime.UtcNow;
             order.DeletedById = userId;
             order.DeletedByName = userName;
@@ -80,6 +101,9 @@ namespace VehicleRegisterSystem.Application.Services
             if (_cache.TryGetValue(cacheKey, out IEnumerable<OrderDto> cached)) return cached;
 
             var list = await _repo.GetByUserAsync(userId);
+            // فقط الطلبات الجديدة أو المعادة
+            list = list.Where(o => o.Status == OrderStatus.New || o.Status == OrderStatus.Returned).ToList();
+
             var dtos = list.Select(Map).ToList();
             _cache.Set(cacheKey, dtos, TimeSpan.FromMinutes(2));
             return dtos;
@@ -118,36 +142,68 @@ namespace VehicleRegisterSystem.Application.Services
             return Map(order);
         }
 
-        public async Task ReturnToUserAsync(Guid id, string validatorId, string validatorName, string comment)
+        public async Task<ServiceResult<bool>> ReturnToUserAsync(Guid id, string validatorId, string validatorName, string comment)
         {
-            var order = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Order not found");
-            if (order.Status == OrderStatus.Approved)
-                throw new InvalidOperationException("Already approved");
+            var order = await _repo.GetByIdAsync(id);
+            if (order == null)
+                return ServiceResult<bool>.Failure("الطلب غير موجود", "ORDER_NOT_FOUND");
 
-            order.Status = OrderStatus.Returned;
+            if (order.Status != OrderStatus.New)
+                return ServiceResult<bool>.Failure("لا يمكن إعادة الطلب من هذه الحالة", "INVALID_STATUS");
+
+            if (string.IsNullOrWhiteSpace(comment))
+                return ServiceResult<bool>.Failure("سبب إعادة الطلب مطلوب", "MISSING_COMMENT");
+
+            order.Status = OrderStatus.Returned; // 👈 لازم تكون عندك حالة إعادة الطلب بالـ Enum
             order.StatusChangedAt = DateTime.UtcNow;
             order.StatusChangedById = validatorId;
             order.StatusChangedByName = validatorName;
-            // comment can be stored in audit in real impl
+
+            // ممكن تسجل التعليق في حقل خاص أو جدول Logs
+            order.ReturnComment = comment;
+
             await _repo.UpdateAsync(order);
             _cache.Remove($"order_{id}");
             _cache.Remove($"user_orders_{order.CreatedById}");
+
+            return ServiceResult<bool>.Success(true);
         }
 
-        public async Task SetInProgressAsync(Guid id, string validatorId, string validatorName)
-        {
-            var order = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Order not found");
-            if (order.Status == OrderStatus.Approved)
-                throw new InvalidOperationException("Already approved");
 
+        public async Task<ServiceResult<bool>> SetInProgressAsync(Guid id, string validatorId, string validatorName)
+        {
+            var order = await _repo.GetByIdAsync(id);
+            if (order == null)
+                return ServiceResult<bool>.Failure("الطلب غير موجود", "ORDER_NOT_FOUND");
+
+            if (order.Status != OrderStatus.New)
+                return ServiceResult<bool>.Failure("لا يمكن نقل الطلب من الحالة الحالية إلى قيد الإجراء", "INVALID_STATUS");
+
+            // فحص: رقم المحرك مكرر
+            if (await _repo.EngineNumberExistsAsync(order.EngineNumber, order.Id))
+                return ServiceResult<bool>.Failure("رقم المحرك مكرر. الرجاء تصحيح البيانات.", "DUPLICATE_ENGINE");
+
+            // فحص: بيانات السيارة ناقصة
+            if (string.IsNullOrWhiteSpace(order.CarName) ||
+                string.IsNullOrWhiteSpace(order.Model) ||
+                order.YearOfManufacture <= 0)
+            {
+                return ServiceResult<bool>.Failure("بيانات السيارة ناقصة. الرجاء تصحيح الطلب قبل التقدم.", "MISSING_DATA");
+            }
+
+            // ✅ نجاح
             order.Status = OrderStatus.InProgress;
             order.StatusChangedAt = DateTime.UtcNow;
             order.StatusChangedById = validatorId;
             order.StatusChangedByName = validatorName;
+
             await _repo.UpdateAsync(order);
             _cache.Remove($"order_{id}");
             _cache.Remove($"user_orders_{order.CreatedById}");
+
+            return ServiceResult<bool>.Success(true);
         }
+
 
         public async Task<bool> RegisterBoardAsync(Guid id, string boardNumber, string registrarId, string registrarName)
         {
@@ -190,6 +246,7 @@ namespace VehicleRegisterSystem.Application.Services
             StatusChangedAt = o.StatusChangedAt,
             StatusChangedById = o.StatusChangedById,
             StatusChangedByName = o.StatusChangedByName,
+            ReturnComment=o.ReturnComment,
             BoardNumber = o.BoardNumber
         };
 
