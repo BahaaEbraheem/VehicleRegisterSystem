@@ -74,6 +74,8 @@ namespace VehicleRegisterSystem.Application.Services
 
                 // Step 2: Generate JWT token using the full DTO
                 loggedInUser.Token = _jwtService.GenerateToken(loggedInUser);
+
+
                 _logger.LogInformation("تم تسجيل الدخول بنجاح للمستخدم: {Email} - Successful login for user: {Email}",
                     loginDto.Email, loginDto.Email);
 

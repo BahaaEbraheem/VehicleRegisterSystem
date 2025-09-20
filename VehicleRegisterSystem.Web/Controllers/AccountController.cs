@@ -38,7 +38,7 @@ namespace VehicleRegisterSystem.Web.Controllers
                     HttpOnly = true,
                     Secure = true, // set true in production
                     SameSite = SameSiteMode.Strict,
-                    Expires = DateTimeOffset.UtcNow.AddMinutes(60)
+                    Expires = null
                 });
 
                 return RedirectToAction("Index", "Home");
