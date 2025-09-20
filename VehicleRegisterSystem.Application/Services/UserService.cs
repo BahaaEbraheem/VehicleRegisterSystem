@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 using System.Text;
+using VehicleRegisterSystem.Application.DTOs.AuthenticationDTOs;
 using VehicleRegisterSystem.Application.Interfaces;
 using VehicleRegisterSystem.Application.Validation;
 using VehicleRegisterSystem.Domain;
@@ -16,8 +18,11 @@ namespace VehicleRegisterSystem.Application.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly ILogger<UserService> _logger;
-        public UserService(IUserRepository userRepository,ILogger<UserService> logger)
+        private readonly UserManager<ApplicationUser> _userManager;
+        public UserService(UserManager<ApplicationUser> userManager,
+            IUserRepository userRepository,ILogger<UserService> logger)
         {
+            _userManager= userManager;
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -158,119 +163,116 @@ namespace VehicleRegisterSystem.Application.Services
         /// إضافة مستخدم جديد
         /// Add a new user
         /// </summary>
-        public async Task<ServiceResult<int>> AddUserAsync(ApplicationUser user)
+        public async Task<ServiceResult<string>> AddUserAsync(ApplicationUser user, string password)
         {
             try
             {
                 if (user == null)
                 {
                     _logger.LogWarning("تم تمرير مستخدم فارغ - Null user provided");
-                    return ServiceResult<int>.Failure("بيانات المستخدم مطلوبة - User data is required");
+                    return ServiceResult<string>.Failure("بيانات المستخدم مطلوبة - User data is required");
                 }
 
-                // التحقق من صحة البيانات
-                var validationResult = ValidateUser(user);
-                if (!validationResult.IsSuccess)
-                {
-                    return ServiceResult<int>.Failure(validationResult.ErrorMessage!);
-                }
-
-                // التحقق من عدم وجود مستخدم بنفس البريد الإلكتروني
+                // تحقق من وجود بريد
                 if (await _userRepository.ExistsByEmailAsync(user.Email))
                 {
-                    _logger.LogWarning("محاولة إضافة مستخدم بريد إلكتروني موجود: {Email} - Attempt to add user with existing email", user.Email);
-                    return ServiceResult<int>.Failure("البريد الإلكتروني موجود بالفعل - Email already exists");
+                    _logger.LogWarning("محاولة إضافة مستخدم بريد إلكتروني موجود: {Email}", user.Email);
+                    return ServiceResult<string>.Failure("البريد الإلكتروني موجود بالفعل - Email already exists");
                 }
 
-                _logger.LogDebug("إضافة مستخدم جديد: {Email} - Adding new user", user.Email);
+                _logger.LogDebug("إضافة مستخدم جديد: {Email}", user.Email);
 
-                // تشفير كلمة المرور إذا لم تكن مشفرة بالفعل
-                // Hash password if not already hashed
-                if (!string.IsNullOrEmpty(user.PasswordHash) && !IsPasswordHashed(user.PasswordHash))
+                // استخدم UserManager عشان ينشئ الهاش تلقائي
+                var result = await _userManager.CreateAsync(user, password);
+
+                if (!result.Succeeded)
                 {
-                    user.PasswordHash = HashPassword(user.PasswordHash);
+                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                    _logger.LogError("فشل في إنشاء المستخدم: {Errors}", errors);
+                    return ServiceResult<string>.Failure("فشل في إضافة المستخدم - Failed to add user");
                 }
 
-           
-
-                var userId = await _userRepository.AddAsync(user);
-
-                _logger.LogInformation("تم إضافة مستخدم جديد بالمعرف {UserId} - New user added with ID", userId);
-                return ServiceResult<int>.Success(userId);
+                _logger.LogInformation("تم إضافة مستخدم جديد بالمعرف {UserId}", user.Id);
+                return ServiceResult<string>.Success(user.Id); // Identity بيرجع string GUID
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "خطأ في إضافة المستخدم - Error adding user");
-                return ServiceResult<int>.Failure("خطأ في إضافة المستخدم - Error adding user");
+                _logger.LogError(ex, "خطأ في إضافة المستخدم");
+                return ServiceResult<string>.Failure("خطأ في إضافة المستخدم - Error adding user");
             }
         }
+
 
         /// <summary>
         /// تحديث مستخدم موجود
         /// Update an existing user
         /// </summary>
-        //public async Task<ServiceResult<bool>> UpdateUserAsync(ApplicationUser user)
-        //{
-        //    try
-        //    {
-        //        if (user == null)
-        //        {
-        //            _logger.LogWarning("تم تمرير مستخدم فارغ للتحديث - Null user provided for update");
-        //            return ServiceResult<bool>.Failure("بيانات المستخدم مطلوبة - User data is required");
-        //        }
+        public async Task<ServiceResult<string>> UpdateUserAsync(string userId, RegisterDto model)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(userId) || model == null)
+                {
+                    _logger.LogWarning("تم تمرير بيانات غير صحيحة للتحديث - Invalid input for update");
+                    return ServiceResult<string>.Failure("بيانات المستخدم مطلوبة - User data is required");
+                }
 
-        //        // التحقق من وجود المستخدم
-        //        var existingUser = await _userRepository.GetByIdAsync(user.Id);
-        //        if (existingUser == null)
-        //        {
-        //            _logger.LogWarning("محاولة تحديث مستخدم غير موجود: {UserId} - Attempt to update non-existing user", user.UserId);
-        //            return ServiceResult<bool>.Failure("المستخدم غير موجود - User not found");
-        //        }
-        //        //// التحقق من قواعد الأعمال المخصصة
+                // الحصول على المستخدم الحالي
+                var existingUser = await _userManager.FindByIdAsync(userId);
+                if (existingUser == null)
+                {
+                    _logger.LogWarning("المستخدم غير موجود للتحديث: {UserId}", userId);
+                    return ServiceResult<string>.Failure("المستخدم غير موجود - User not found");
+                }
 
-        //        // التحقق من صحة البيانات
-        //        var validationResult = ValidateUser(user);
-        //        if (!validationResult.IsSuccess)
-        //        {
-        //            return ServiceResult<bool>.Failure(validationResult.ErrorMessage!);
-        //        }
+                // تحقق من عدم وجود مستخدم آخر بنفس البريد
+                var userWithSameEmail = await _userManager.FindByEmailAsync(model.Email);
+                if (userWithSameEmail != null && userWithSameEmail.Id != userId)
+                {
+                    _logger.LogWarning("البريد الإلكتروني موجود بالفعل: {Email}", model.Email);
+                    return ServiceResult<string>.Failure("البريد الإلكتروني موجود بالفعل - Email already exists");
+                }
 
-        //        user.PasswordHash = string.IsNullOrEmpty(user.PasswordHash)
-        //            ? existingUser.PasswordHash
-        //            : user.PasswordHash;
+                // تحديث البيانات
+                existingUser.FullName = $"{model.FirstName} {model.LastName}";
+                existingUser.Email = model.Email;
+                existingUser.UserName = model.Email;
+                existingUser.PhoneNumber = model.PhoneNumber;
+                existingUser.Role = model.Role;
 
+                var updateResult = await _userManager.UpdateAsync(existingUser);
 
+                if (!updateResult.Succeeded)
+                {
+                    var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
+                    _logger.LogError("فشل في تحديث المستخدم: {Errors}", errors);
+                    return ServiceResult<string>.Failure("فشل في تحديث المستخدم - Failed to update user");
+                }
 
-        //        // التحقق من عدم وجود مستخدم آخر بنفس البريد الإلكتروني
-        //        var userWithSameEmail = await _userRepository.GetByEmailAsync(user.Email);
-        //        //if (userWithSameEmail != null && userWithSameEmail.UserId != user.UserId)
-        //        //{
-        //        //    _logger.LogWarning("محاولة تحديث مستخدم ببريد إلكتروني موجود: {Email} - Attempt to update user with existing email", user.Email);
-        //        //    return ServiceResult<bool>.Failure("البريد الإلكتروني موجود بالفعل - Email already exists");
-        //        //}
+                // تحديث كلمة المرور إذا تم إدخال كلمة جديدة
+                if (!string.IsNullOrEmpty(model.Password))
+                {
+                    var token = await _userManager.GeneratePasswordResetTokenAsync(existingUser);
+                    var passwordResult = await _userManager.ResetPasswordAsync(existingUser, token, model.Password);
 
-        //        //_logger.LogDebug("تحديث المستخدم {UserId} - Updating user", user.UserId);
+                    if (!passwordResult.Succeeded)
+                    {
+                        var errors = string.Join(", ", passwordResult.Errors.Select(e => e.Description));
+                        _logger.LogError("فشل في تحديث كلمة المرور: {Errors}", errors);
+                        return ServiceResult<string>.Failure("فشل في تحديث كلمة المرور - Failed to update password");
+                    }
+                }
 
-        //        //user.ModifiedDate = DateTime.Now;
-        //        var success = await _userRepository.UpdateAsync(user);
+                _logger.LogInformation("تم تحديث المستخدم بنجاح: {UserId}", userId);
+                return ServiceResult<string>.Success(userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "خطأ في تحديث المستخدم {UserId}", userId);
+                return ServiceResult<string>.Failure("خطأ في تحديث المستخدم - Error updating user");
+            }
+        }
 
-        //        //if (success)
-        //        //{
-        //        //    _logger.LogInformation("تم تحديث المستخدم {UserId} بنجاح - User updated successfully", user.UserId);
-        //        //}
-        //        //else
-        //        //{
-        //        //    _logger.LogWarning("فشل في تحديث المستخدم {UserId} - Failed to update user", user.UserId);
-        //        //}
-
-        //        return ServiceResult<bool>.Success(success);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        //_logger.LogError(ex, "خطأ في تحديث المستخدم {UserId} - Error updating user", user?.UserId);
-        //        return ServiceResult<bool>.Failure("خطأ في تحديث المستخدم - Error updating user");
-        //    }
-        //}
 
         /// <summary>
         /// حذف مستخدم
@@ -440,5 +442,6 @@ namespace VehicleRegisterSystem.Application.Services
             }
         }
 
+    
     }
 }

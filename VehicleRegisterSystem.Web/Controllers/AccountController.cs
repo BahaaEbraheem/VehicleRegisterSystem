@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using VehicleRegisterSystem.Application.DTOs.AuthenticationDTOs;
 using VehicleRegisterSystem.Application.Interfaces;
 
@@ -31,9 +32,15 @@ namespace VehicleRegisterSystem.Web.Controllers
             var result = await _authService.LoginAsync(model);
             if (result.IsSuccess)
             {
-                // Save JWT token or user info in session/cookie
-                HttpContext.Session.SetString("Token", result.Data.Token);
-                HttpContext.Session.SetString("FullName", result.Data.FullName);
+                // Save JWT in a HttpOnly cookie
+                Response.Cookies.Append("AuthToken", result.Data.Token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true, // set true in production
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTimeOffset.UtcNow.AddMinutes(60)
+                });
+
                 return RedirectToAction("Index", "Home");
             }
 
@@ -41,10 +48,12 @@ namespace VehicleRegisterSystem.Web.Controllers
             return View(model);
         }
 
+
         // GET: /Account/Register
         [HttpGet]
         public IActionResult Register()
         {
+            var model = new RegisterDto();
             return View();
         }
 
@@ -57,14 +66,31 @@ namespace VehicleRegisterSystem.Web.Controllers
                 return View(model);
 
             var result = await _authService.RegisterAsync(model);
+
             if (result.IsSuccess)
             {
+                // Redirect to login page after successful registration
                 return RedirectToAction("Login");
             }
 
-            ModelState.AddModelError("", result.ErrorMessage);
+            // Add single error message if present
+            if (!string.IsNullOrEmpty(result.ErrorMessage))
+            {
+                ModelState.AddModelError(string.Empty, result.ErrorMessage);
+            }
+
+            // Add multiple validation errors if present
+            if (result.ValidationErrors?.Any() == true)
+            {
+                foreach (var error in result.ValidationErrors)
+                {
+                    ModelState.AddModelError(string.Empty, error);
+                }
+            }
+
             return View(model);
         }
+
 
         // GET: /Account/LogoutConfirmation
         [HttpGet]
@@ -72,8 +98,8 @@ namespace VehicleRegisterSystem.Web.Controllers
         {
             var model = new LogoutDto
             {
-                CurrentUserName = HttpContext.Session.GetString("FullName") ?? "غير معروف - Unknown",
-                CurrentUserEmail = HttpContext.Session.GetString("Email") ?? ""
+                CurrentUserName = User.Identity?.Name ?? "غير معروف - Unknown",
+                CurrentUserEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? ""
             };
             return View(model);
         }
@@ -83,7 +109,18 @@ namespace VehicleRegisterSystem.Web.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Logout()
         {
-            HttpContext.Session.Clear();
+            // Delete the JWT cookie
+            if (Request.Cookies.ContainsKey("AuthToken"))
+            {
+                Response.Cookies.Delete("AuthToken", new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTimeOffset.UtcNow.AddDays(-1) // expire immediately
+                });
+            }
+
             return RedirectToAction("Login", "Account");
         }
     }

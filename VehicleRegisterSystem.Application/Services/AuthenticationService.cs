@@ -44,8 +44,7 @@ namespace VehicleRegisterSystem.Application.Services
                 _logger.LogDebug("محاولة تسجيل دخول للمستخدم: {Email} - Login attempt for user: {Email}",
                     loginDto.Email, loginDto.Email);
 
-                // البحث عن المستخدم بالبريد الإلكتروني
-                // Find user by email
+                // البحث عن المستخدم بالبريد الإلكتروني - Find user by email
                 var users = await _userRepository.GetAllAsync();
                 var user = users.FirstOrDefault(u => u.Email.Equals(loginDto.Email, StringComparison.OrdinalIgnoreCase));
 
@@ -56,28 +55,25 @@ namespace VehicleRegisterSystem.Application.Services
                     return ServiceResult<LoggedInUserDto>.Failure("البريد الإلكتروني أو كلمة المرور غير صحيحة - Invalid email or password");
                 }
 
-            
-
-                // التحقق من كلمة المرور
-                // Verify password
-                if (!VerifyPassword(loginDto.Password, user.PasswordHash))
+                // التحقق من كلمة المرور باستخدام PasswordHasher - Verify password
+                var passwordVerificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, loginDto.Password);
+                if (passwordVerificationResult == PasswordVerificationResult.Failed)
                 {
-
                     return ServiceResult<LoggedInUserDto>.Failure("البريد الإلكتروني أو كلمة المرور غير صحيحة - Invalid email or password");
                 }
 
-                // إنشاء نموذج المستخدم المسجل دخوله
-                // Create logged in user model
+                // إنشاء نموذج المستخدم المسجل دخوله - Create logged in user model
+                // Step 1: Create the logged in user DTO
                 var loggedInUser = new LoggedInUserDto
                 {
+                    UserId = user.Id,        // must include UserId
                     FullName = user.FullName,
                     Email = user.Email,
+                    Role = user.Role,        // must include Role
                 };
 
-                // ✅ إنشاء رمز JWT وإضافته إلى النموذج
+                // Step 2: Generate JWT token using the full DTO
                 loggedInUser.Token = _jwtService.GenerateToken(loggedInUser);
-
-
                 _logger.LogInformation("تم تسجيل الدخول بنجاح للمستخدم: {Email} - Successful login for user: {Email}",
                     loginDto.Email, loginDto.Email);
 
@@ -89,6 +85,7 @@ namespace VehicleRegisterSystem.Application.Services
                 return ServiceResult<LoggedInUserDto>.Failure("حدث خطأ أثناء تسجيل الدخول - An error occurred during login");
             }
         }
+
 
         /// <summary>
         /// تسجيل مستخدم جديد
@@ -106,15 +103,24 @@ namespace VehicleRegisterSystem.Application.Services
 
                 var user = new ApplicationUser
                 {
+                    // IdentityUser properties
+                    UserName = registerDto.Email.Trim().ToLowerInvariant(), // usually same as email
+                    NormalizedEmail = registerDto.Email.Trim().ToUpperInvariant(),
+                    NormalizedUserName = registerDto.Email.Trim().ToUpperInvariant(),
+                    EmailConfirmed = false, // set to true if you want to auto-confirm email
+                    PhoneNumberConfirmed = false,
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    ConcurrencyStamp = Guid.NewGuid().ToString(),
+                    LockoutEnabled = true, // enable lockout for failed login attempts
+                    AccessFailedCount = 0,
                     Email = registerDto.Email.Trim().ToLowerInvariant(),
                     PhoneNumber = registerDto.PhoneNumber?.Trim(),
                     FullName = $"{registerDto.FirstName} {registerDto.LastName}",
                     Role = registerDto.Role
                 };
 
-                user.PasswordHash = _passwordHasher.HashPassword(user, registerDto.Password);
-
-                var userId = await _userRepository.AddAsync(user);
+                // لا تعمل hash بنفسك
+                var userId = await _userRepository.AddAsync(user, registerDto.Password);
 
                 // Assign role if admin or default to User
                 await _userRepository.AssignRoleAsync(userId, registerDto.Role);

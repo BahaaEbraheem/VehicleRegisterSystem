@@ -68,7 +68,17 @@ namespace VehicleRegisterSystem.Application.DTOs.AuthenticationDTOs
         [DataType(DataType.Password)]
         [Compare("Password", ErrorMessage = "كلمة المرور وتأكيدها غير متطابقتين - Password and confirmation do not match")]
         public string ConfirmPassword { get; set; } = string.Empty;
+        /// <summary>
+        /// رسالة الخطأ
+        /// Error message
+        /// </summary>
+        public string? ErrorMessage { get; set; }
 
+        /// <summary>
+        /// رسالة النجاح
+        /// Success message
+        /// </summary>
+        public string? SuccessMessage { get; set; }
         /// <summary>
         /// دور المستخدم (للمديرين فقط)
         /// User role (for administrators only)

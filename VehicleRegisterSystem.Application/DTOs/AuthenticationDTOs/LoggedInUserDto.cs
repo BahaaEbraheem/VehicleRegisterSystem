@@ -17,7 +17,7 @@ namespace VehicleRegisterSystem.Application.DTOs.AuthenticationDTOs
         /// معرف المستخدم
         /// User ID
         /// </summary>
-        public int UserId { get; set; }
+        public string UserId { get; set; }
 
         /// <summary>
         /// الاسم الكامل

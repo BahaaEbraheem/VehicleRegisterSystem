@@ -24,19 +24,18 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
         /// إضافة مستخدم جديد
         /// Add a new user
         /// </summary>
-        public async Task<int> AddAsync(ApplicationUser user)
+        public async Task<string> AddAsync(ApplicationUser user, string password)
         {
             if (user == null) throw new ArgumentNullException(nameof(user));
 
-            var result = await _userManager.CreateAsync(user, user.PasswordHash); // PasswordHash contains plain password here
+            var result = await _userManager.CreateAsync(user, password);
             if (!result.Succeeded)
             {
                 _logger.LogError("Failed to create user: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
                 throw new Exception("Failed to create user.");
             }
 
-            // Return the user's ID as int (assuming ApplicationUser.Id is int; if string, adjust accordingly)
-            return int.Parse(user.Id);
+            return user.Id; // IdentityUser.Id هو string by default
         }
 
         /// <summary>
@@ -149,7 +148,7 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
         /// <summary>
         /// Assign a role to a user
         /// </summary>
-        public async Task AssignRoleAsync(int userId, UserRole role)
+        public async Task AssignRoleAsync(string userId, UserRole role)
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());
             if (user != null)

@@ -12,6 +12,8 @@ using VehicleRegisterSystem.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IUserRepository, UserRepository>();   // Your implementation
+builder.Services.AddScoped<IUserService, UserService>();
+
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();   // Your implementation
 builder.Services.AddScoped<IJwtService, JwtService>();           // Your implementation
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();           // Your implementation
@@ -52,6 +54,16 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Cookies["AuthToken"];
+            if (!string.IsNullOrEmpty(token))
+                context.Token = token;
+            return Task.CompletedTask;
+        }
+    };
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
@@ -77,7 +89,12 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-
+// Seed roles and users
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    await DbInitializer.SeedDataAsync(services);
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

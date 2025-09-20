@@ -12,7 +12,7 @@ using VehicleRegisterSystem.Infrastructure.Data;
 namespace VehicleRegisterSystem.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250920114755_init")]
+    [Migration("20250920133137_init")]
     partial class init
     {
         /// <inheritdoc />
@@ -203,6 +203,9 @@ namespace VehicleRegisterSystem.Infrastructure.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");

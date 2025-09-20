@@ -59,14 +59,13 @@ namespace VehicleRegisterSystem.Application.Services
 
                 var claims = new List<Claim>
                 {
-                    new(ClaimTypes.NameIdentifier, loggedInUser.UserId.ToString()),
-                    new(ClaimTypes.Email, loggedInUser.Email),
-                    new(ClaimTypes.Name, loggedInUser.FullName),
-                    new(ClaimTypes.Role, loggedInUser.Role.ToString()),
-                    new("IsActive", loggedInUser.IsActive.ToString()),
-                    new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
-                };
+                   new(ClaimTypes.NameIdentifier, loggedInUser.UserId.ToString()),
+    new(ClaimTypes.Email, loggedInUser.Email),
+    new(ClaimTypes.Name, loggedInUser.FullName),
+    new(ClaimTypes.Role, loggedInUser.Role.ToString()), // now properly set
+    new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+    new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+ };
 
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
                 var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

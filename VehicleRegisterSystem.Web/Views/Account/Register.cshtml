@@ -25,6 +25,27 @@
                 </div>
                 <div class="card-body p-4">
 
+                      @{
+                        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                        var currentUserName = User.Identity?.Name;
+                        var currentUserRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                        var isLoggedIn = User.Identity?.IsAuthenticated ?? false;
+                        var isAdmin = User.IsInRole("Administrator");
+                        var isOrderValidator = User.IsInRole("OrderValidator");
+                        var isBoardRegistrar = User.IsInRole("BoardRegistrar");
+                        var isUser = User.IsInRole("User");
+                    }
+
+
+                    @if (!string.IsNullOrEmpty(Model?.ErrorMessage))
+                    {
+                        <div class="alert alert-danger">@Html.Raw(Model.ErrorMessage)</div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model?.SuccessMessage))
+                    {
+                        <div class="alert alert-success">@Model.SuccessMessage</div>
+                    }
 
                     <!-- نموذج التسجيل - Registration Form -->
                     <form method="post">
@@ -82,7 +103,7 @@
                             <span asp-validation-for="Address" class="text-danger"></span>
                         </div>
 
-                        @if (User.IsInRole(UserRole.Administrator.ToString()))
+                        @if (isAdmin)
                         {
                             <div class="mb-3">
                                 <label asp-for="Role" class="form-label">
@@ -143,7 +164,7 @@
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success btn-lg">
                                 <i class="fas fa-user-plus me-2"></i>
-                                @if (User.IsInRole(UserRole.Administrator.ToString()))
+                                @if (isAdmin)
 
                                 {
                                     <span>إضافة المستخدم - Add User</span>
@@ -156,13 +177,13 @@
                         </div>
                     </form>
 
-                    @if (User.IsInRole(UserRole.Administrator.ToString()))
+                    @if (isAdmin)
 
                     {
                         <hr class="my-4">
                         <div class="text-center">
                             <p class="mb-2">لديك حساب بالفعل؟ - Already have an account?</p>
-                            <a href="/Auth/Login" class="btn btn-outline-primary">
+                            <a href="/Account/Login" class="btn btn-outline-primary">
                                 <i class="fas fa-sign-in-alt me-1"></i>
                                 تسجيل الدخول - Login
                             </a>

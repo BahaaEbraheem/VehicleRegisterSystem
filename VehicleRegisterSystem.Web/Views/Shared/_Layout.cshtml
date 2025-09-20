@@ -100,8 +100,8 @@
         <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
             <div class="container">
                 <a class="navbar-brand" href="/">
-                    <i class="fas fa-book-open me-2"></i>
-                    نظام تسجيل المركبة
+                    <i class="fas fa-car me-2"></i>
+                    نظام تسجيل المركبات
                 </a>
 
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -110,42 +110,73 @@
 
                 <div class="collapse navbar-collapse" id="navbarNav">
                     @{
-                        var currentUserId = Context.Session.GetInt32("UserId");
-                        var currentUserName = Context.Session.GetString("UserName");
-                        var currentUserRole = Context.Session.GetString("UserRole");
-                        var isLoggedIn = currentUserId.HasValue;
-                        var isAdmin = currentUserRole == "Administrator";
+                        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                        var currentUserName = User.Identity?.Name;
+                        var currentUserRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                        var isLoggedIn = User.Identity?.IsAuthenticated ?? false;
+                        var isAdmin = User.IsInRole("Administrator");
+                        var isOrderValidator = User.IsInRole("OrderValidator");
+                        var isBoardRegistrar = User.IsInRole("BoardRegistrar");
+                        var isUser = User.IsInRole("User");
                     }
 
                     @if (isLoggedIn)
                     {
                         <ul class="navbar-nav me-auto">
-                            <li class="nav-item">
-                                <a class="nav-link" href="/Books/Index">
-                                    <i class="fas fa-book me-1"></i>
-                                    الكتب المتاحة
-                                </a>
-                            </li>
-
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="/Borrowings/Index">
-                                    <i class="fas fa-exchange-alt me-1"></i>
-                                    الاستعارات
-                                </a>
-                            </li>
-                            @if (isAdmin)
+                            @if (isUser)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/Orders/MyOrders">
+                                        <i class="fas fa-car me-1"></i> طلباتي
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/Orders/Create">
+                                        <i class="fas fa-plus me-1"></i> إنشاء طلب جديد
+                                    </a>
+                                </li>
+                            }
+                            else if (isOrderValidator)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/Orders/PendingValidation">
+                                        <i class="fas fa-tasks me-1"></i> الطلبات الجديدة
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/Orders/InReview">
+                                        <i class="fas fa-search me-1"></i> الطلبات قيد التحقق
+                                    </a>
+                                </li>
+                            }
+                            else if (isBoardRegistrar)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/Orders/InProgress">
+                                        <i class="fas fa-cogs me-1"></i> الطلبات قيد الإجراء
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/Orders/RegisterPlate">
+                                        <i class="fas fa-id-card me-1"></i> تسجيل اللوحات
+                                    </a>
+                                </li>
+                            }
+                            else if (isAdmin)
                             {
                                 <li class="nav-item">
                                     <a class="nav-link" href="/Users/Index">
-                                        <i class="fas fa-users me-1"></i>
-                                        المستخدمون
+                                        <i class="fas fa-users me-1"></i> إدارة المستخدمين
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/Orders/Index">
+                                        <i class="fas fa-list me-1"></i> إدارة الطلبات
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" href="/Admin/Dashboard">
-                                        <i class="fas fa-tachometer-alt me-1"></i>
-                                        لوحة التحكم
+                                        <i class="fas fa-tachometer-alt me-1"></i> لوحة التحكم
                                     </a>
                                 </li>
                             }
@@ -155,7 +186,7 @@
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                     <i class="fas fa-user me-1"></i>
-                                    @currentUserName
+                                    @currentUserName (@currentUserRole)
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="/Account/LogoutConfirmation">تسجيل الخروج</a></li>
@@ -184,6 +215,7 @@
             </div>
         </nav>
     </header>
+
 
     <main class="container mt-4">
         <!-- عرض الرسائل - Display messages -->

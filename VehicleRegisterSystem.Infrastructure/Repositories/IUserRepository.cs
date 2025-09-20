@@ -43,7 +43,7 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
         /// إضافة مستخدم جديد
         /// Add a new user
         /// </summary>
-        Task<int> AddAsync(ApplicationUser user);
+        Task<string> AddAsync(ApplicationUser user, string password);
 
         /// <summary>
         /// تحديث مستخدم موجود
@@ -72,7 +72,7 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
         /// <summary>
         /// Assign a role to a user
         /// </summary>
-        Task AssignRoleAsync(int userId, UserRole role);
+        Task AssignRoleAsync(string userId, UserRole role);
 
         /// <summary>
         /// Get roles of a user
