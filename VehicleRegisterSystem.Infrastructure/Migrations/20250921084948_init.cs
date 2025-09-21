@@ -57,10 +57,10 @@ namespace VehicleRegisterSystem.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedById = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedById = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CreatedByName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     FullName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    NationalNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    NationalNumber = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     MotherName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CarName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Model = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -70,15 +70,17 @@ namespace VehicleRegisterSystem.Infrastructure.Migrations
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
                     StatusChangedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    StatusChangedById = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    StatusChangedByName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    BoardNumber = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    StatusChangedById = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    StatusChangedByName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    BoardNumber = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeletedById = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    DeletedByName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DeletedById = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DeletedByName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ModifiedById = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ModifiedByName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ModifiedById = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ModifiedByName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ReturnComment = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
@@ -237,9 +239,30 @@ namespace VehicleRegisterSystem.Infrastructure.Migrations
                 column: "BoardNumber");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Orders_CreatedAt",
+                table: "Orders",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_CreatedById",
+                table: "Orders",
+                column: "CreatedById");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Orders_EngineNumber",
                 table: "Orders",
-                column: "EngineNumber");
+                column: "EngineNumber",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_NationalNumber",
+                table: "Orders",
+                column: "NationalNumber");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_Status",
+                table: "Orders",
+                column: "Status");
         }
 
         /// <inheritdoc />

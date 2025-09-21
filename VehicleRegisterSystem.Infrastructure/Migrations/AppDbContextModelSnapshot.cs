@@ -249,7 +249,7 @@ namespace VehicleRegisterSystem.Infrastructure.Migrations
 
                     b.Property<string>("CreatedById")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("CreatedByName")
                         .IsRequired()
@@ -294,7 +294,7 @@ namespace VehicleRegisterSystem.Infrastructure.Migrations
 
                     b.Property<string>("NationalNumber")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("ReturnComment")
                         .HasColumnType("nvarchar(max)");
@@ -324,7 +324,16 @@ namespace VehicleRegisterSystem.Infrastructure.Migrations
 
                     b.HasIndex("BoardNumber");
 
-                    b.HasIndex("EngineNumber");
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("EngineNumber")
+                        .IsUnique();
+
+                    b.HasIndex("NationalNumber");
+
+                    b.HasIndex("Status");
 
                     b.ToTable("Orders");
                 });

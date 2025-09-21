@@ -19,13 +19,19 @@ namespace VehicleRegisterSystem.Infrastructure.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Order>(entity =>
+            {
+                // Clustered على Id (مفتاح أساسي تلقائي)
+                entity.HasKey(o => o.Id);
 
-            modelBuilder.Entity<Order>()
-                .HasIndex(o => o.EngineNumber);
-
-            modelBuilder.Entity<Order>()
-                .HasIndex(o => o.BoardNumber)
-                .IsUnique(false); // لاحقاً يمكن تغييره إلى true مع منطق التحقق
+                // Non-clustered indexes
+                entity.HasIndex(o => o.EngineNumber).IsUnique(); // فحص التكرار
+                entity.HasIndex(o => o.BoardNumber).IsUnique(false); // بحث حسب اللوحة
+                entity.HasIndex(o => o.NationalNumber); // البحث حسب الرقم الوطني
+                entity.HasIndex(o => o.Status); // البحث حسب حالة الطلب
+                entity.HasIndex(o => o.CreatedById); // جلب الطلبات الخاصة بالمستخدم
+                entity.HasIndex(o => o.CreatedAt); // إذا كنت ترتب الطلبات حسب التاريخ
+            });
         }
     }
 }

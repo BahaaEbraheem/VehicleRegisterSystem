@@ -12,8 +12,8 @@ using VehicleRegisterSystem.Infrastructure.Data;
 namespace VehicleRegisterSystem.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250920183451_edit2")]
-    partial class edit2
+    [Migration("20250921084948_init")]
+    partial class init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -252,7 +252,7 @@ namespace VehicleRegisterSystem.Infrastructure.Migrations
 
                     b.Property<string>("CreatedById")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("CreatedByName")
                         .IsRequired()
@@ -297,6 +297,9 @@ namespace VehicleRegisterSystem.Infrastructure.Migrations
 
                     b.Property<string>("NationalNumber")
                         .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ReturnComment")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<byte[]>("RowVersion")
@@ -324,7 +327,16 @@ namespace VehicleRegisterSystem.Infrastructure.Migrations
 
                     b.HasIndex("BoardNumber");
 
-                    b.HasIndex("EngineNumber");
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("EngineNumber")
+                        .IsUnique();
+
+                    b.HasIndex("NationalNumber");
+
+                    b.HasIndex("Status");
 
                     b.ToTable("Orders");
                 });
