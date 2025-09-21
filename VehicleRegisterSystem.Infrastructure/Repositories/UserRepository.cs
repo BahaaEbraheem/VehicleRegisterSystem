@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using VehicleRegisterSystem.Domain;
 using VehicleRegisterSystem.Domain.Enums;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace VehicleRegisterSystem.Infrastructure.Repositories
 {
@@ -31,11 +32,11 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
             var result = await _userManager.CreateAsync(user, password);
             if (!result.Succeeded)
             {
-                _logger.LogError("Failed to create user: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
-                throw new Exception("Failed to create user.");
-            }
-
-            return user.Id; // IdentityUser.Id هو string by default
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                _logger.LogError("Failed to create user: {Errors}", errors);
+                throw new Exception(errors); // ترمي رسالة الأخطاء الحقيقية           }
+                }
+                return user.Id; // IdentityUser.Id هو string by default
         }
 
         /// <summary>

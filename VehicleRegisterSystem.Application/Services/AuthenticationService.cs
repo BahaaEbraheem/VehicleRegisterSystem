@@ -134,7 +134,7 @@ namespace VehicleRegisterSystem.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during user registration");
-                return ServiceResult<string>.Failure("An error occurred during user registration");
+                return ServiceResult<string>.Failure(ex.Message);
             }
         }
 

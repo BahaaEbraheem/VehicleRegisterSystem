@@ -5,7 +5,16 @@
     ViewData["Title"] = "إنشاء حساب جديد - Create Account";
     Layout = "_Layout";
 }
-
+@{
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var currentUserName = User.Identity?.Name;
+    var currentUserRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+    var isLoggedIn = User.Identity?.IsAuthenticated ?? false;
+    var isAdmin = User.IsInRole("Administrator");
+    var isOrderValidator = User.IsInRole("OrderValidator");
+    var isBoardRegistrar = User.IsInRole("BoardRegistrar");
+    var isUser = User.IsInRole("User");
+}
 <div class="container mt-4" dir="rtl">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
@@ -13,7 +22,7 @@
                 <div class="card-header bg-success text-white text-center">
                     <h3 class="card-title mb-0">
                         <i class="fas fa-user-plus me-2"></i>
-                        @if (User.IsInRole(UserRole.Administrator.ToString()))
+                        @if (isAdmin)
                         {
                             <span>إضافة مستخدم جديد - Add New User</span>
                         }
@@ -25,17 +34,18 @@
                 </div>
                 <div class="card-body p-4">
 
-                      @{
-                        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                        var currentUserName = User.Identity?.Name;
-                        var currentUserRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-                        var isLoggedIn = User.Identity?.IsAuthenticated ?? false;
-                        var isAdmin = User.IsInRole("Administrator");
-                        var isOrderValidator = User.IsInRole("OrderValidator");
-                        var isBoardRegistrar = User.IsInRole("BoardRegistrar");
-                        var isUser = User.IsInRole("User");
+                    
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            <ul>
+                                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <li>@error.ErrorMessage</li>
+                                }
+                            </ul>
+                        </div>
                     }
-
                     <!-- رسائل الأخطاء من Model -->
                     @if (!string.IsNullOrEmpty(Model?.ErrorMessage))
                     {

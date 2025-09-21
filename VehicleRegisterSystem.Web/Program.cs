@@ -8,6 +8,7 @@ using VehicleRegisterSystem.Application.Interfaces;
 using VehicleRegisterSystem.Application.Services;
 using VehicleRegisterSystem.Domain;
 using VehicleRegisterSystem.Infrastructure.Data;
+using VehicleRegisterSystem.Infrastructure.Identity;
 using VehicleRegisterSystem.Infrastructure.Repositories;
 using VehicleRegisterSystem.Web.GlobalExceptionFiltersl;
 
@@ -36,11 +37,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.Password.RequiredLength = 6;
+    options.Password.RequireNonAlphanumeric = true;
     options.Password.RequireDigit = true;
-    options.Password.RequireUppercase = false;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
 })
 .AddEntityFrameworkStores<AppDbContext>()
+.AddErrorDescriber<ArabicIdentityErrorDescriber>() // ÊÓÌíá ÇáÝÆÉ ÈÇáÚÑÈí
 .AddDefaultTokenProviders();
+
+
+
+
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
