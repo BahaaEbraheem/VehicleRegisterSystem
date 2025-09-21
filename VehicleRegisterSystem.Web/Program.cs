@@ -22,7 +22,7 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();           // Yo
 builder.Services.AddScoped<IOrderService, OrderService>();           // Your implementation
 // ILogger<T> is automatically provided by ASP.NET Core
 
-
+builder.Services.AddMemoryCache();
 
 builder.Services.AddControllersWithViews(options =>
 {
