@@ -135,5 +135,23 @@ namespace VehicleRegisterSystem.Web.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Submit(Guid id)
+        {
+            var result = await _service.SubmitOrderAsync(id, UserId, UserName);
+
+            if (!result.IsSuccess)
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage ?? "حدث خطأ أثناء تقديم الطلب";
+            }
+            else
+            {
+                TempData["Message"] = "تم تقديم الطلب للمدقق بنجاح";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
     }
 }

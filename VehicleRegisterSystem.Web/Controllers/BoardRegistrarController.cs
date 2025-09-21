@@ -96,7 +96,13 @@ namespace VehicleRegisterSystem.Web.Controllers
             TempData["Message"] = "تم تسجيل لوحة السيارة بنجاح!";
             return RedirectToAction(nameof(RegisterBoard), new { id = dto.OrderId });
         }
-
+        [Authorize(Roles = "BoardRegistrar,Admin")]
+        public async Task<IActionResult> ApprovedOrders()
+        {
+            // جلب كل الطلبات التي تم تسجيلها بنجاح
+            var orders = await _orderService.GetByStatusesAsync(OrderStatus.Approved);
+            return View(orders); // Views/BoardRegistrar/ApprovedOrders.cshtml
+        }
 
     }
 }

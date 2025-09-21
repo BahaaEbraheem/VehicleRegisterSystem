@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using VehicleRegisterSystem.Application.DTOs;
 using VehicleRegisterSystem.Application.Interfaces;
@@ -59,7 +60,7 @@ namespace VehicleRegisterSystem.Application.Services
                 Color = dto.Color,
                 EngineNumber = dto.EngineNumber,
                 CreatedAt = DateTime.UtcNow,
-                Status = OrderStatus.New
+                Status = OrderStatus.Draft
             };
 
             await _repo.AddAsync(order);
@@ -104,7 +105,7 @@ namespace VehicleRegisterSystem.Application.Services
 
             var list = await _repo.GetByUserAsync(userId);
             // فقط الطلبات الجديدة أو المعادة
-            //list = list.ToList();
+            list = list.Where(a=>a.Status==OrderStatus.Draft || a.Status==OrderStatus.Returned || a.Status==OrderStatus.Approved). ToList();
 
             var dtos = list.Select(Map).ToList();
             _cache.Set(cacheKey, dtos, TimeSpan.FromMinutes(2));
@@ -156,7 +157,7 @@ namespace VehicleRegisterSystem.Application.Services
             if (order == null)
                 return ServiceResult<bool>.Failure("الطلب غير موجود", "ORDER_NOT_FOUND");
 
-            if (order.Status != OrderStatus.New)
+            if (order.Status != OrderStatus.New && order.Status != OrderStatus.Returned)
                 return ServiceResult<bool>.Failure("لا يمكن إعادة الطلب من هذه الحالة", "INVALID_STATUS");
 
             if (string.IsNullOrWhiteSpace(comment))
@@ -229,6 +230,17 @@ namespace VehicleRegisterSystem.Application.Services
             if (await _repo.BoardNumberExistsAsync(boardNumber, id))
                 return ServiceResult<bool>.Failure("رقم اللوحة موجود مسبقاً", "DUPLICATE_BOARD");
 
+            // تحويل اللوحة للحروف الكبيرة للتوحيد
+            boardNumber = boardNumber.ToUpper().Trim();
+
+            // يجب أن يحتوي على حرف كبير واحد على الأقل وأرقام/حروف فقط
+            var regex = new Regex("^(?=.*[A-Z])[A-Z0-9]+$");
+            if (!regex.IsMatch(boardNumber))
+                return ServiceResult<bool>.Failure("رقم اللوحة يجب أن يحتوي فقط على حروف كبيرة وأرقام", "INVALID_FORMAT");
+
+
+
+
             // تحديث بيانات الطلب
             order.BoardNumber = boardNumber;
             order.Status = OrderStatus.Approved;
@@ -265,10 +277,29 @@ namespace VehicleRegisterSystem.Application.Services
             StatusChangedAt = o.StatusChangedAt,
             StatusChangedById = o.StatusChangedById,
             StatusChangedByName = o.StatusChangedByName,
-            ReturnComment=o.ReturnComment,
+            CurrentReturnComment=o.ReturnComment,
             BoardNumber = o.BoardNumber
         };
 
-     
+        public async Task<ServiceResult<bool>> SubmitOrderAsync(Guid orderId, string userId, string userName)
+        {
+            var order = await _repo.GetByIdAsync(orderId);
+            if (order == null)
+                return ServiceResult<bool>.Failure("الطلب غير موجود", "ORDER_NOT_FOUND");
+
+            if (order.Status != OrderStatus.Draft)
+                return ServiceResult<bool>.Failure("الطلب لا يمكن تقديمه", "INVALID_STATUS");
+
+            order.Status = OrderStatus.New;
+            order.StatusChangedAt = DateTime.UtcNow;
+            order.StatusChangedById = userId;
+            order.StatusChangedByName = userName;
+
+            await _repo.UpdateAsync(order);
+            _cache.Remove($"order_{orderId}");
+            _cache.Remove($"user_orders_{order.CreatedById}");
+
+            return ServiceResult<bool>.Success(true);
+        }
     }
 }

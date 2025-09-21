@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using VehicleRegisterSystem.Application.DTOs;
 using VehicleRegisterSystem.Application.Interfaces;
 using VehicleRegisterSystem.Domain.Enums;
 
@@ -15,12 +16,7 @@ namespace VehicleRegisterSystem.Web.Controllers
         private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
         private string UserName => User.Identity?.Name ?? "";
 
-        // الطلبات الجديدة
-        //public async Task<IActionResult> PendingValidation()
-        //{
-        //    var orders = await _orderService.GetByStatusAsync(OrderStatus.New);
-        //    return View(orders); // Views/OrderValidator/PendingValidation.cshtml
-        //}
+
         public async Task<IActionResult> PendingValidation()
         {
             var orders = await _orderService.GetNewAndReturnedAndModifiedOrdersAsync();
@@ -49,15 +45,19 @@ namespace VehicleRegisterSystem.Web.Controllers
         // POST: إعادة الطلب
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ReturnOrder(Guid id, string comment)
+        public async Task<IActionResult> ReturnOrder(OrderDto dto)
         {
-            var result = await _orderService.ReturnToUserAsync(id, UserId, UserName, comment);
+            var result = await _orderService.ReturnToUserAsync(
+                dto.Id,
+                UserId,
+                UserName,
+                dto.CurrentReturnComment
+            );
 
             if (!result.IsSuccess)
             {
                 ModelState.AddModelError("", result.ErrorMessage ?? "حدث خطأ أثناء إعادة الطلب");
-                // لو حابب تعيد عرض نفس View للطلب
-                var order = await _orderService.GetByIdAsync(id);
+                var order = await _orderService.GetByIdAsync(dto.Id);
                 return View("ValidateOrder", order);
             }
 

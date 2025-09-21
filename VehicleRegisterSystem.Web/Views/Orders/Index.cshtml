@@ -46,21 +46,28 @@
                     <td>@order.YearOfManufacture</td>
                     <td>@order.EngineNumber</td>
                     <td>@order.Status</td>
-                    <td>@order.ReturnComment</td>
+                    <td>@order.CurrentReturnComment</td>
                     <td>@order.BoardNumber</td>
                     <td>
 
-                        @if (order.Status == OrderStatus.New || order.Status == OrderStatus.Returned)
+                        @if (order.Status == OrderStatus.Draft)
                         {
-                            <a asp-action="Edit" asp-route-id="@order.Id" class="btn btn-sm btn-warning"
-                               onclick="return confirm('@(order.Status == OrderStatus.Returned ? "هل أنت متأكد من حل الملاحظة؟" : "هل تريد تعديل الطلب؟")');">
-                                تحديث
-                            </a>
+                            <form asp-action="Submit" asp-route-id="@order.Id" method="post" class="d-inline"
+                                  onsubmit="return confirm('هل أنت متأكد من تقديم الطلب للمدقق؟');">
+                                <button type="submit" class="btn btn-sm btn-primary">تقديم</button>
+                            </form>
+                         
 
                             <form asp-action="Delete" asp-route-id="@order.Id" method="post" class="d-inline"
                                   onsubmit="return confirm('هل أنت متأكد من حذف الطلب؟');">
                                 <button type="submit" class="btn btn-sm btn-danger">حذف</button>
                             </form>
+                        }
+                        else if (order.Status == OrderStatus.Returned)
+                        {
+                            <a asp-action="Edit" asp-route-id="@order.Id" class="btn btn-sm btn-warning">
+                                تحديث
+                            </a>
                         }
                         else
                         {

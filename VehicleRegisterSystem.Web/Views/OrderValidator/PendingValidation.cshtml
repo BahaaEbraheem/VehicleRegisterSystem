@@ -36,6 +36,12 @@
                 <td>@order.CreatedAt.ToString("yyyy-MM-dd")</td>
                 <td>
                     <a class="btn btn-primary btn-sm" href="@Url.Action("ValidateOrder", "OrderValidator", new { id = order.Id })">تدقيق الطلب</a>
+
+                    @* Badge عند تعديل الطلب *@
+                    @if (order.ModifiedAt != null && order.StatusChangedAt != null && order.ModifiedAt > (order.StatusChangedAt ?? order.CreatedAt))
+                    {
+                        <span class="badge bg-warning text-dark ms-1">تم تعديل الطلب</span>
+                    }
                 </td>
             </tr>
         }

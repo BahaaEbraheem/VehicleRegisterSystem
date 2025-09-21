@@ -21,6 +21,8 @@ namespace VehicleRegisterSystem.Application.Interfaces
         Task<IEnumerable<OrderDto>> GetForUserAsync(string userId);
         Task<IEnumerable<OrderDto>> GetByStatusesAsync(params OrderStatus[] statuses);
         Task<IEnumerable<OrderDto>> GetNewAndReturnedAndModifiedOrdersAsync();
+        Task<ServiceResult<bool>> SubmitOrderAsync(Guid orderId, string userId, string userName); // ✅ جديد
+
 
     }
 }

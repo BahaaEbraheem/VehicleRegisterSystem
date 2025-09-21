@@ -22,11 +22,24 @@ namespace VehicleRegisterSystem.Application.DTOs
         public string EngineNumber { get; set; }
         public DateTime CreatedAt { get; set; }
         public OrderStatus Status { get; set; }
-        public string? ReturnComment { get; set; }
-
+        public DateTime? ModifiedAt { get; set; }
         public DateTime? StatusChangedAt { get; set; }
         public string StatusChangedById { get; set; }
         public string StatusChangedByName { get; set; }
         public string BoardNumber { get; set; }
+        // ✅ قائمة أسباب الإعادة السابقة
+        // ✅ قائمة أسباب الإعادة السابقة
+        public List<OrderReturnHistoryDto> ReturnHistory { get; set; }
+
+        // ✅ سبب إعادة الطلب الحالي
+        public string CurrentReturnComment { get; set; }
+
+    }
+
+    public class OrderReturnHistoryDto
+    {
+        public string Comment { get; set; }
+        public DateTime ReturnedAt { get; set; }
+        public string ReturnedByName { get; set; }
     }
 }

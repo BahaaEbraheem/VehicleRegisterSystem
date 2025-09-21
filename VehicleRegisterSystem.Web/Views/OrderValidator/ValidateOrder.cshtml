@@ -1,19 +1,16 @@
 ﻿@model VehicleRegisterSystem.Application.DTOs.OrderDto
+@using VehicleRegisterSystem.Domain.Enums
 
 <h2>تدقيق الطلب</h2>
 
 @if (TempData["Error"] != null)
 {
-    <div class="alert alert-danger">
-        @TempData["Error"]
-    </div>
+    <div class="alert alert-danger">@TempData["Error"]</div>
 }
 
 @if (TempData["Message"] != null)
 {
-    <div class="alert alert-success">
-        @TempData["Message"]
-    </div>
+    <div class="alert alert-success">@TempData["Message"]</div>
 }
 
 <div class="card mb-3">
@@ -27,20 +24,50 @@
         <p><strong>لون:</strong> @Model.Color</p>
         <p><strong>رقم المحرك:</strong> @Model.EngineNumber</p>
         <p><strong>تاريخ الطلب:</strong> @Model.CreatedAt.ToString("yyyy-MM-dd")</p>
-        <p><strong>الحالة:</strong> @Model.Status</p>
+        <p>
+            <strong>الحالة:</strong> @Model.Status
+            @if (Model.ModifiedAt != null && Model.StatusChangedAt != null && Model.ModifiedAt > (Model.StatusChangedAt ?? Model.CreatedAt))
+            {
+                <span class="badge bg-warning text-dark ms-1">تم تعديل الطلب</span>
+            }
+        </p>
     </div>
 </div>
 
+@* نموذج إعادة الطلب *@
 <form asp-action="ReturnOrder" method="post" class="mb-3">
-    <input type="hidden" name="id" value="@Model.Id" />
-    <div class="mb-2">
-        <label>سبب إعادة الطلب:</label>
-        <textarea name="comment" class="form-control" required></textarea>
+    <input type="hidden" asp-for="Id" />
+
+    @* أسباب الإعادة السابقة للقراءة فقط *@
+    @if (Model.ReturnHistory != null && Model.ReturnHistory.Any())
+    {
+        <div class="mb-3">
+            <label>أسباب إعادة الطلب السابقة:</label>
+            <ul class="list-group">
+                @foreach (var r in Model.ReturnHistory)
+                {
+                    <li class="list-group-item">
+                        <strong>@r.ReturnedAt.ToString("yyyy-MM-dd")</strong> - @r.ReturnedByName: @r.Comment
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    @* سبب إعادة الطلب الحالي *@
+    <div class="mb-3">
+        <label>سبب إعادة الطلب الحالي:</label>
+        <textarea asp-for="CurrentReturnComment" class="form-control" required></textarea>
+        <span asp-validation-for="CurrentReturnComment" class="text-danger"></span>
     </div>
+
     <button type="submit" class="btn btn-danger">إعادة الطلب للمستخدم</button>
 </form>
 
+@* نموذج نقل الطلب إلى قيد الإجراء *@
 <form asp-action="SetInProgress" method="post">
-    <input type="hidden" name="id" value="@Model.Id" />
+    <input type="hidden" asp-for="Id" />
     <button type="submit" class="btn btn-success">نقل الطلب إلى قيد الإجراء</button>
 </form>
+
+
