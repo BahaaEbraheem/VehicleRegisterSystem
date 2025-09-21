@@ -23,27 +23,12 @@ namespace VehicleRegisterSystem.Application.Interfaces
         Task<ServiceResult<string>> RegisterAsync(RegisterDto registerDto);
 
         /// <summary>
-        /// تغيير كلمة المرور
-        /// Change password
-        /// </summary>
-        Task<ServiceResult<bool>> ChangePasswordAsync(string userId, ChangePasswordDto changePasswordDto);
-
-        /// <summary>
         /// التحقق من وجود البريد الإلكتروني
         /// Check if email exists
         /// </summary>
         Task<ServiceResult<bool>> EmailExistsAsync(string email);
 
-        /// <summary>
-        /// تشفير كلمة المرور
-        /// Hash password
-        /// </summary>
-        string HashPassword(string password);
 
-        /// <summary>
-        /// التحقق من كلمة المرور
-        /// Verify password hash
-        /// </summary>
-        bool VerifyPassword(string password, string hash);
+
     }
 }

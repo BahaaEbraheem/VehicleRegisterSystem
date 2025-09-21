@@ -1,103 +1,140 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using VehicleRegisterSystem.Application.DTOs;
 using VehicleRegisterSystem.Application.Interfaces;
-using VehicleRegisterSystem.Application.Services;
+using VehicleRegisterSystem.Web.GlobalExceptionFiltersl;
 
 namespace VehicleRegisterSystem.Web.Controllers
 {
-    [Authorize]
+    [Authorize] // السماح فقط للمستخدمين المسجلين
+    [TypeFilter(typeof(GlobalExceptionFilter))] // التعامل مع الأخطاء العامة
     public class OrdersController : Controller
     {
         private readonly IOrderService _service;
+
         public OrdersController(IOrderService service) => _service = service;
 
+        // معرف واسم المستخدم الحالي
         private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
         private string UserName => User.Identity?.Name ?? "";
 
-        // عرض كل الطلبات للمستخدم الحالي
+        #region عرض الطلبات
+
+        /// <summary>
+        /// عرض كل الطلبات الخاصة بالمستخدم الحالي
+        /// </summary>
         public async Task<IActionResult> Index()
         {
-            var orders = await _service.GetForUserAsync(UserId);
-            return View(orders); // MyOrders.cshtml
+            try
+            {
+                var orders = await _service.GetForUserAsync(UserId);
+                return View(orders); // صفحة الطلبات MyOrders.cshtml
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"حدث خطأ أثناء عرض الطلبات: {ex.Message}";
+                return View(Enumerable.Empty<OrderDto>());
+            }
         }
 
-        // إنشاء طلب جديد — GET
+        #endregion
+
+        #region إنشاء طلب جديد
+
+        /// <summary>
+        /// GET: صفحة إنشاء طلب جديد
+        /// </summary>
         [HttpGet]
         public IActionResult Create() => View();
 
-        // إنشاء طلب جديد — POST
+        /// <summary>
+        /// POST: إنشاء طلب جديد
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateOrderDto dto)
         {
             if (!ModelState.IsValid)
             {
-                // جمع جميع أخطاء التحقق
-                var errors = ModelState
-                    .SelectMany(x => x.Value.Errors)
-                    .Select(x => x.ErrorMessage)
-                    .ToList();
-
-                // تسجيل الأخطاء في Debug Output
-                foreach (var error in errors)
-                {
-                    System.Diagnostics.Debug.WriteLine(error);
-                }
-
-                // مؤقت: عرض الأخطاء في TempData (للتجربة فقط)
-                TempData["ModelErrors"] = string.Join(" | ", errors);
+                // جمع جميع أخطاء التحقق وعرضها
+                TempData["ErrorMessage"] = string.Join(" | ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
 
                 return View(dto);
             }
 
-            var result = await _service.CreateAsync(dto, UserId, UserName);
-
-            if (!result.IsSuccess)
+            try
             {
-                if (result.ValidationErrors.Any())
+                var result = await _service.CreateAsync(dto, UserId, UserName);
+
+                if (!result.IsSuccess)
                 {
-                    foreach (var err in result.ValidationErrors)
-                        ModelState.AddModelError(string.Empty, err);
+                    if (result.ValidationErrors?.Any() == true)
+                        foreach (var err in result.ValidationErrors)
+                            ModelState.AddModelError(string.Empty, err);
+                    else
+                        ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "حدث خطأ غير معروف");
+
+                    return View(dto);
                 }
-                else
-                {
-                    ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "حدث خطأ غير معروف");
-                }
+
+                TempData["SuccessMessage"] = "تم إنشاء الطلب بنجاح";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"حدث خطأ أثناء إنشاء الطلب: {ex.Message}";
                 return View(dto);
             }
-
-            TempData["Message"] = "تم إنشاء الطلب بنجاح";
-            return RedirectToAction("Index");
         }
 
+        #endregion
 
-        // تعديل الطلب — GET
+        #region تعديل الطلب
+
+        /// <summary>
+        /// GET: صفحة تعديل الطلب
+        /// </summary>
         [HttpGet]
         public async Task<IActionResult> Edit(Guid id)
         {
-            var order = await _service.GetByIdAsync(id);
-            if (order.Status != Domain.Enums.OrderStatus.New && order.Status != Domain.Enums.OrderStatus.Returned)
-                return Forbid();
-
-            var dto = new UpdateOrderDto
+            try
             {
-                FullName = order.FullName,
-                NationalNumber = order.NationalNumber,
-                MotherName = order.MotherName,
-                CarName = order.CarName,
-                Model = order.Model,
-                YearOfManufacture = order.YearOfManufacture,
-                Color = order.Color,
-                EngineNumber = order.EngineNumber
-            };
-            return View(dto);
+                var order = await _service.GetByIdAsync(id);
+
+                // التحقق من حالة الطلب
+                if (order.Status != Domain.Enums.OrderStatus.New && order.Status != Domain.Enums.OrderStatus.Returned)
+                    return Forbid();
+
+                var dto = new UpdateOrderDto
+                {
+                    FullName = order.FullName,
+                    NationalNumber = order.NationalNumber,
+                    MotherName = order.MotherName,
+                    CarName = order.CarName,
+                    Model = order.Model,
+                    YearOfManufacture = order.YearOfManufacture,
+                    Color = order.Color,
+                    EngineNumber = order.EngineNumber
+                };
+
+                return View(dto);
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"حدث خطأ أثناء تحميل بيانات الطلب: {ex.Message}";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
-        // تعديل الطلب — POST
+        /// <summary>
+        /// POST: تعديل الطلب
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Guid id, UpdateOrderDto dto)
@@ -107,7 +144,7 @@ namespace VehicleRegisterSystem.Web.Controllers
             try
             {
                 await _service.UpdateAsync(id, dto, UserId, UserName);
-                TempData["SuccessMessage"] = "تم تحديث الطلب بنجاح"; // ← رسالة النجاح
+                TempData["SuccessMessage"] = "تم تحديث الطلب بنجاح";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
@@ -117,48 +154,70 @@ namespace VehicleRegisterSystem.Web.Controllers
             }
         }
 
+        #endregion
 
-        // حذف الطلب
+        #region حذف الطلب
+
+        /// <summary>
+        /// POST: حذف الطلب
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var result = await _service.DeleteAsync(id, UserId, UserName);
+            try
+            {
+                var result = await _service.DeleteAsync(id, UserId, UserName);
 
-            if (result.IsSuccess)
-            {
-                TempData["SuccessMessage"] = "تم حذف الطلب بنجاح";
+                if (result.IsSuccess)
+                {
+                    TempData["SuccessMessage"] = "تم حذف الطلب بنجاح";
+                }
+                else if (result.ValidationErrors?.Any() == true)
+                {
+                    TempData["ErrorMessage"] = string.Join(" | ", result.ValidationErrors);
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = result.ErrorMessage ?? "حدث خطأ أثناء الحذف";
+                }
             }
-            else if (result.ValidationErrors?.Any() == true)
+            catch (Exception ex)
             {
-                TempData["ErrorMessage"] = string.Join(" | ", result.ValidationErrors);
-            }
-            else
-            {
-                TempData["ErrorMessage"] = result.ErrorMessage ?? "حدث خطأ أثناء الحذف";
+                TempData["ErrorMessage"] = $"حدث خطأ أثناء حذف الطلب: {ex.Message}";
             }
 
             return RedirectToAction(nameof(Index));
         }
 
+        #endregion
 
+        #region تقديم الطلب
+
+        /// <summary>
+        /// POST: تقديم الطلب للمدقق
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Submit(Guid id)
         {
-            var result = await _service.SubmitOrderAsync(id, UserId, UserName);
+            try
+            {
+                var result = await _service.SubmitOrderAsync(id, UserId, UserName);
 
-            if (!result.IsSuccess)
-            {
-                TempData["ErrorMessage"] = result.ErrorMessage ?? "حدث خطأ أثناء تقديم الطلب";
+                if (result.IsSuccess)
+                    TempData["SuccessMessage"] = "تم تقديم الطلب للمدقق بنجاح";
+                else
+                    TempData["ErrorMessage"] = result.ErrorMessage ?? "حدث خطأ أثناء تقديم الطلب";
             }
-            else
+            catch (Exception ex)
             {
-                TempData["Message"] = "تم تقديم الطلب للمدقق بنجاح";
+                TempData["ErrorMessage"] = $"حدث خطأ أثناء تقديم الطلب: {ex.Message}";
             }
 
             return RedirectToAction(nameof(Index));
         }
 
+        #endregion
     }
 }

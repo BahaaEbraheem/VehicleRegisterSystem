@@ -6,13 +6,17 @@ using System.Threading.Tasks;
 using VehicleRegisterSystem.Application.DTOs;
 using VehicleRegisterSystem.Application.Interfaces;
 using VehicleRegisterSystem.Domain.Enums;
+using VehicleRegisterSystem.Web.GlobalExceptionFiltersl;
 
 namespace VehicleRegisterSystem.Web.Controllers
 {
     [Authorize(Roles = "BoardRegistrar,Administrator")]
+    [TypeFilter(typeof(GlobalExceptionFilter))] // التعامل مع الأخطاء العامة
+
     public class BoardRegistrarController : Controller
     {
         private readonly IOrderService _orderService;
+
         public BoardRegistrarController(IOrderService orderService)
         {
             _orderService = orderService;
@@ -21,46 +25,89 @@ namespace VehicleRegisterSystem.Web.Controllers
         private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
         private string UserName => User.Identity?.Name ?? "";
 
-        // عرض كل الطلبات في الحالة "قيد الإجراء"
+        #region عرض الطلبات
+
+        /// <summary>
+        /// عرض كل الطلبات في الحالة "قيد الإجراء"
+        /// </summary>
         public async Task<IActionResult> Index()
         {
-            var orders = await _orderService.GetByStatusesAsync(OrderStatus.InProgress);
-            return View(orders); // Views/BoardRegistrar/Index.cshtml
+            try
+            {
+                var orders = await _orderService.GetByStatusesAsync(OrderStatus.InProgress);
+                return View(orders); // Views/BoardRegistrar/Index.cshtml
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"حدث خطأ أثناء جلب الطلبات: {ex.Message}";
+                return View(Array.Empty<OrderDto>());
+            }
         }
 
-        // GET: تسجيل لوحة السيارة
+        /// <summary>
+        /// عرض الطلبات التي تم اعتمادها
+        /// </summary>
+        public async Task<IActionResult> ApprovedOrders()
+        {
+            try
+            {
+                var orders = await _orderService.GetByStatusesAsync(OrderStatus.Approved);
+                return View(orders); // Views/BoardRegistrar/ApprovedOrders.cshtml
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"حدث خطأ أثناء جلب الطلبات المعتمدة: {ex.Message}";
+                return View(Array.Empty<OrderDto>());
+            }
+        }
+
+        #endregion
+
+        #region تسجيل لوحة السيارة
+
+        /// <summary>
+        /// GET: عرض نموذج تسجيل لوحة السيارة
+        /// </summary>
         [HttpGet]
         public async Task<IActionResult> RegisterBoard(Guid? id)
         {
-            RegisterBoardDto dto = null;
-
-            if (id.HasValue)
+            try
             {
-                var order = await _orderService.GetByIdAsync(id.Value);
-                if (order != null && order.Status == OrderStatus.InProgress)
+                RegisterBoardDto dto = null;
+
+                if (id.HasValue)
                 {
-                    dto = new RegisterBoardDto
+                    var order = await _orderService.GetByIdAsync(id.Value);
+                    if (order != null && order.Status == OrderStatus.InProgress)
                     {
-                        OrderId = id.Value,
-                        CarName = order.CarName,
-                        Model = order.Model,
-                        EngineNumber = order.EngineNumber
-                    };
+                        dto = new RegisterBoardDto
+                        {
+                            OrderId = id.Value,
+                            CarName = order.CarName,
+                            Model = order.Model,
+                            EngineNumber = order.EngineNumber
+                        };
+                    }
                 }
-            }
 
-            // إذا لم يوجد طلب صالح، نمرر DTO فارغ
-            if (dto == null)
+                if (dto == null)
+                {
+                    dto = new RegisterBoardDto();
+                    ViewData["DisableForm"] = true; // لتعطيل الحقول والأزرار
+                }
+
+                return View(dto);
+            }
+            catch (Exception ex)
             {
-                dto = new RegisterBoardDto();
-                ViewData["DisableForm"] = true; // لتعطيل الحقول والأزرار
+                TempData["ErrorMessage"] = $"حدث خطأ أثناء تحميل بيانات الطلب: {ex.Message}";
+                return RedirectToAction(nameof(Index));
             }
-
-            return View(dto);
         }
 
-
-        // POST: تسجيل لوحة السيارة
+        /// <summary>
+        /// POST: تسجيل لوحة السيارة
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RegisterBoard(RegisterBoardDto dto)
@@ -68,41 +115,41 @@ namespace VehicleRegisterSystem.Web.Controllers
             if (!ModelState.IsValid)
                 return View(dto);
 
-            // استدعاء الخدمة
-            var result = await _orderService.RegisterBoardAsync(
-                dto.OrderId,
-                dto.BoardNumber,
-                User.Identity.Name, // أو أي معرف المستخدم
-                User.Identity.Name
-            );
-
-            if (!result.IsSuccess)
+            try
             {
-                // إذا كانت هناك ValidationErrors
-                if (result.ValidationErrors.Any())
+                var result = await _orderService.RegisterBoardAsync(
+                    dto.OrderId,
+                    dto.BoardNumber,
+                    UserId,
+                    UserName
+                );
+
+                if (!result.IsSuccess)
                 {
-                    foreach (var error in result.ValidationErrors)
+                    if (result.ValidationErrors.Any())
                     {
-                        ModelState.AddModelError(string.Empty, error);
+                        foreach (var error in result.ValidationErrors)
+                        {
+                            ModelState.AddModelError(string.Empty, error);
+                        }
                     }
+                    else
+                    {
+                        ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "حدث خطأ غير معروف.");
+                    }
+                    return View(dto);
                 }
-                else
-                {
-                    ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "حدث خطأ غير معروف.");
-                }
+
+                TempData["Message"] = "تم تسجيل لوحة السيارة بنجاح!";
+                return RedirectToAction(nameof(RegisterBoard), new { id = dto.OrderId });
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"حدث خطأ أثناء تسجيل لوحة السيارة: {ex.Message}";
                 return View(dto);
             }
-
-            TempData["Message"] = "تم تسجيل لوحة السيارة بنجاح!";
-            return RedirectToAction(nameof(RegisterBoard), new { id = dto.OrderId });
-        }
-        [Authorize(Roles = "BoardRegistrar,Administrator")]
-        public async Task<IActionResult> ApprovedOrders()
-        {
-            // جلب كل الطلبات التي تم تسجيلها بنجاح
-            var orders = await _orderService.GetByStatusesAsync(OrderStatus.Approved);
-            return View(orders); // Views/BoardRegistrar/ApprovedOrders.cshtml
         }
 
+        #endregion
     }
 }

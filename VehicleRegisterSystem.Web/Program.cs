@@ -9,6 +9,7 @@ using VehicleRegisterSystem.Application.Services;
 using VehicleRegisterSystem.Domain;
 using VehicleRegisterSystem.Infrastructure.Data;
 using VehicleRegisterSystem.Infrastructure.Repositories;
+using VehicleRegisterSystem.Web.GlobalExceptionFiltersl;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IUserRepository, UserRepository>();   // Your implementation
@@ -20,8 +21,15 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();           // Yo
 builder.Services.AddScoped<IOrderService, OrderService>();           // Your implementation
 // ILogger<T> is automatically provided by ASP.NET Core
 
-// Add services to the container.
-builder.Services.AddControllersWithViews();
+
+
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<GlobalExceptionFilter>();
+});
+
+
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -95,7 +103,7 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     await DbInitializer.SeedDataAsync(services);
 }
-
+// ≈÷«›… «·‹ Middleware ›Ì √⁄·Ï «·‹ pipeline
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();

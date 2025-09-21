@@ -140,53 +140,6 @@ namespace VehicleRegisterSystem.Application.Services
 
 
         /// <summary>
-        /// تغيير كلمة المرور
-        /// Change password
-        /// </summary>
-        public async Task<ServiceResult<bool>> ChangePasswordAsync(string userId, ChangePasswordDto changePasswordDto)
-        {
-            try
-            {
-                _logger.LogDebug("محاولة تغيير كلمة المرور للمستخدم: {UserId} - Attempting to change password for user: {UserId}",
-                    userId, userId);
-
-                var user = await _userRepository.GetByIdAsync(userId);
-                if (user == null)
-                {
-                    return ServiceResult<bool>.Failure("المستخدم غير موجود - User not found");
-                }
-
-                // التحقق من كلمة المرور الحالية
-                // Verify current password
-                if (!VerifyPassword(changePasswordDto.CurrentPassword, user.PasswordHash))
-                {
-                    _logger.LogWarning("فشل تغيير كلمة المرور: كلمة المرور الحالية خاطئة - Password change failed: Current password is incorrect. UserId: {UserId}",
-                        userId);
-                    return ServiceResult<bool>.Failure("كلمة المرور الحالية غير صحيحة - Current password is incorrect");
-                }
-
-                // تحديث كلمة المرور
-                // Update password
-                user.PasswordHash = HashPassword(changePasswordDto.NewPassword);
-
-                var success = await _userRepository.UpdateAsync(user);
-
-                if (success)
-                {
-                    _logger.LogInformation("تم تغيير كلمة المرور بنجاح للمستخدم: {UserId} - Successfully changed password for user: {UserId}",
-                        userId, userId);
-                }
-
-                return ServiceResult<bool>.Success(success);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "خطأ في تغيير كلمة المرور - Error during password change");
-                return ServiceResult<bool>.Failure("حدث خطأ أثناء تغيير كلمة المرور - An error occurred during password change");
-            }
-        }
-
-        /// <summary>
         /// التحقق من وجود البريد الإلكتروني
         /// Check if email exists
         /// </summary>
@@ -207,25 +160,5 @@ namespace VehicleRegisterSystem.Application.Services
             }
         }
 
-        /// <summary>
-        /// تشفير كلمة المرور
-        /// Hash password
-        /// </summary>
-        public string HashPassword(string password)
-        {
-            using var sha256 = SHA256.Create();
-            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password + "LibraryManagementSalt"));
-            return Convert.ToBase64String(hashedBytes);
-        }
-
-        /// <summary>
-        /// التحقق من كلمة المرور
-        /// Verify password hash
-        /// </summary>
-        public bool VerifyPassword(string password, string hash)
-        {
-            var passwordHash = HashPassword(password);
-            return passwordHash == hash;
-        }
     }
 }
