@@ -104,9 +104,19 @@ namespace VehicleRegisterSystem.Web.Controllers
         {
             if (!ModelState.IsValid) return View(dto);
 
-            await _service.UpdateAsync(id, dto, UserId, UserName);
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                await _service.UpdateAsync(id, dto, UserId, UserName);
+                TempData["SuccessMessage"] = "تم تحديث الطلب بنجاح"; // ← رسالة النجاح
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"حدث خطأ أثناء التحديث: {ex.Message}";
+                return View(dto);
+            }
         }
+
 
         // حذف الطلب
         [HttpPost]

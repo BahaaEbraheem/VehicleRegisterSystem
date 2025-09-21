@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using VehicleRegisterSystem.Domain.Enums;
 
 namespace VehicleRegisterSystem.Application.DTOs
 {
@@ -36,5 +37,11 @@ namespace VehicleRegisterSystem.Application.DTOs
         [Required(ErrorMessage = "رقم المحرك مطلوب")]
         [StringLength(50)]
         public string EngineNumber { get; set; }
+        // حقل الحالة لإظهار حالة الطلب في صفحة التعديل
+        public OrderStatus Status { get; set; }
+
+        // سبب إعادة الطلب (اختياري)
+        [StringLength(500)]
+        public string? ReturnComment { get; set; }
     }
 }

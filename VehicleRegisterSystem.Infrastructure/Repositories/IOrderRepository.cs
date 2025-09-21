@@ -12,11 +12,13 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
     {
         Task<Order> GetByIdAsync(Guid id);
         Task<IEnumerable<Order>> GetByUserAsync(string userId);
-        Task<IEnumerable<Order>> GetByStatusAsync(OrderStatus status);
+        Task<IEnumerable<Order>> GetByStatusesAsync(params OrderStatus[] statuses);
         Task AddAsync(Order order);
         Task UpdateAsync(Order order);
         Task DeleteAsync(Order order);
         Task<bool> EngineNumberExistsAsync(string engineNumber, Guid? excludeOrderId = null);
         Task<bool> BoardNumberExistsAsync(string boardNumber, Guid? excludeOrderId = null);
+        Task<IEnumerable<Order>> GetNewAndReturnedAndModifiedOrdersAsync();
+
     }
 }

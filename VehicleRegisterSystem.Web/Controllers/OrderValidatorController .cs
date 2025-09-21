@@ -16,16 +16,20 @@ namespace VehicleRegisterSystem.Web.Controllers
         private string UserName => User.Identity?.Name ?? "";
 
         // الطلبات الجديدة
+        //public async Task<IActionResult> PendingValidation()
+        //{
+        //    var orders = await _orderService.GetByStatusAsync(OrderStatus.New);
+        //    return View(orders); // Views/OrderValidator/PendingValidation.cshtml
+        //}
         public async Task<IActionResult> PendingValidation()
         {
-            var orders = await _orderService.GetByStatusAsync(OrderStatus.New);
+            var orders = await _orderService.GetNewAndReturnedAndModifiedOrdersAsync();
             return View(orders); // Views/OrderValidator/PendingValidation.cshtml
         }
-
         // الطلبات قيد الإجراء (يمكن للمدقق فقط الاطلاع، لا تعديل)
         public async Task<IActionResult> InReview()
         {
-            var orders = await _orderService.GetByStatusAsync(OrderStatus.InProgress);
+            var orders = await _orderService.GetByStatusesAsync(OrderStatus.InProgress);
             return View(orders); // Views/OrderValidator/InReview.cshtml
         }
 
@@ -34,7 +38,9 @@ namespace VehicleRegisterSystem.Web.Controllers
         public async Task<IActionResult> ValidateOrder(Guid id)
         {
             var order = await _orderService.GetByIdAsync(id);
-            if (order.Status != OrderStatus.New)
+            if (order == null)
+                return NotFound();
+            if (order.Status != OrderStatus.New && order.Status != OrderStatus.Returned)
                 return Forbid();
 
             return View(order); // تفاصيل الطلب مع أزرار "إعادة الطلب" و "قيد الإجراء"

@@ -1,0 +1,59 @@
+﻿@model VehicleRegisterSystem.Application.DTOs.RegisterBoardDto
+
+<h2>تسجيل لوحة السيارة</h2>
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Message"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!ViewData.ModelState.IsValid || TempData["Errors"] != null)
+{
+    <div class="alert alert-danger">
+        <ul>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <li>@error.ErrorMessage</li>
+            }
+
+            @if (TempData["Errors"] is List<string> serviceErrors)
+            {
+                @foreach (var error in serviceErrors)
+                {
+                    <li>@error</li>
+                }
+            }
+        </ul>
+    </div>
+}
+
+@{
+    var disabled = ViewData["DisableForm"] as bool? ?? false;
+}
+
+<form asp-action="RegisterBoard" method="post">
+    <input type="hidden" asp-for="OrderId" />
+
+    <div class="form-group mb-2">
+        <label>اسم السيارة</label>
+        <input class="form-control" asp-for="CarName" readonly />
+    </div>
+    <div class="form-group mb-2">
+        <label>موديل السيارة</label>
+        <input class="form-control" asp-for="Model" readonly />
+    </div>
+    <div class="form-group mb-2">
+        <label>رقم المحرك</label>
+        <input class="form-control" asp-for="EngineNumber" readonly />
+    </div>
+    <div class="form-group mb-3">
+        <label>رقم اللوحة</label>
+        <input class="form-control" asp-for="BoardNumber" required
+               disabled="@(disabled ? "disabled" : null)" />
+    </div>
+
+    <button type="submit" class="btn btn-success" @(disabled ? "disabled" : "")>تسجيل</button>
+</form>

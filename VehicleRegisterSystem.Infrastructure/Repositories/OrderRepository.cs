@@ -31,13 +31,27 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
             return await _db.Orders.FirstOrDefaultAsync(o => o.Id == id && !o.IsDeleted);
         }
 
-        public async Task<IEnumerable<Order>> GetByStatusAsync(OrderStatus status)
+        public async Task<IEnumerable<Order>> GetNewAndReturnedAndModifiedOrdersAsync()
         {
             return await _db.Orders
-                              .Where(o => o.Status == status && !o.IsDeleted)
-                              .ToListAsync();
+                .Where(o =>
+                    !o.IsDeleted &&
+                    (
+                        o.Status == OrderStatus.New
+                        || (o.Status == OrderStatus.Returned
+                            && o.ModifiedAt != null
+                            && o.ModifiedAt > o.StatusChangedAt)
+                    )
+                )
+                .OrderBy(o => o.StatusChangedAt ?? o.CreatedAt)
+                .ToListAsync();
         }
-
+        public async Task<IEnumerable<Order>> GetByStatusesAsync(OrderStatus[] statuses)
+        {
+            return await _db.Orders
+                            .Where(o => statuses.Contains(o.Status) && !o.IsDeleted)
+                            .ToListAsync();
+        }
         public async Task<IEnumerable<Order>> GetByUserAsync(string userId)
         {
             return await _db.Orders

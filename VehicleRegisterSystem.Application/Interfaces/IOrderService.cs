@@ -16,10 +16,11 @@ namespace VehicleRegisterSystem.Application.Interfaces
         Task DeleteAsync(Guid id, string userId, string userName);
         Task<ServiceResult<bool>> ReturnToUserAsync(Guid id, string validatorId, string validatorName, string comment);
         Task<ServiceResult<bool>> SetInProgressAsync(Guid id, string validatorId, string validatorName);
-        Task<bool> RegisterBoardAsync(Guid id, string boardNumber, string registrarId, string registrarName);
+        Task<ServiceResult<bool>> RegisterBoardAsync(Guid id, string boardNumber, string registrarId, string registrarName);
         Task<OrderDto> GetByIdAsync(Guid id);
         Task<IEnumerable<OrderDto>> GetForUserAsync(string userId);
-        Task<IEnumerable<OrderDto>> GetByStatusAsync(OrderStatus status); // <-- تعديل هنا
+        Task<IEnumerable<OrderDto>> GetByStatusesAsync(params OrderStatus[] statuses);
+        Task<IEnumerable<OrderDto>> GetNewAndReturnedAndModifiedOrdersAsync();
 
     }
 }

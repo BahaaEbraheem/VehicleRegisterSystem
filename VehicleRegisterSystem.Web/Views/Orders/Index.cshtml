@@ -1,4 +1,5 @@
-﻿@model IEnumerable<VehicleRegisterSystem.Application.DTOs.OrderDto>
+﻿@using VehicleRegisterSystem.Domain.Enums
+@model IEnumerable<VehicleRegisterSystem.Application.DTOs.OrderDto>
 @{
     ViewData["Title"] = "طلباتي - My Orders";
 }
@@ -18,6 +19,7 @@
                 <th>السيارة</th>
                 <th>الموديل</th>
                 <th>سنة الصنع</th>
+                <th>رقم المحرك</th>
                 <th>الحالة</th>
                 <th>سبب الإعادة</th>
                 <th>رقم اللوحة</th>
@@ -29,10 +31,10 @@
             {
                 var statusClass = order.Status switch
                 {
-                    VehicleRegisterSystem.Domain.Enums.OrderStatus.New => "table-primary",
-                    VehicleRegisterSystem.Domain.Enums.OrderStatus.InProgress => "table-warning",
-                    VehicleRegisterSystem.Domain.Enums.OrderStatus.Approved => "table-success",
-                    VehicleRegisterSystem.Domain.Enums.OrderStatus.Returned => "table-danger",
+                    OrderStatus.New => "table-primary",
+                    OrderStatus.InProgress => "table-warning",
+                    OrderStatus.Approved => "table-success",
+                    OrderStatus.Returned => "table-danger",
                     _ => ""
                 };
                 <tr class="@statusClass">
@@ -42,15 +44,28 @@
                     <td>@order.CarName</td>
                     <td>@order.Model</td>
                     <td>@order.YearOfManufacture</td>
+                    <td>@order.EngineNumber</td>
                     <td>@order.Status</td>
                     <td>@order.ReturnComment</td>
                     <td>@order.BoardNumber</td>
                     <td>
-                        <a asp-action="Edit" asp-route-id="@order.Id" class="btn btn-sm btn-warning">تعديل</a>
-                        <form asp-action="Delete" asp-route-id="@order.Id" method="post" class="d-inline"
-                              onsubmit="return confirm('هل أنت متأكد من حذف الطلب؟');">
-                            <button type="submit" class="btn btn-sm btn-danger">حذف</button>
-                        </form>
+
+                        @if (order.Status == OrderStatus.New || order.Status == OrderStatus.Returned)
+                        {
+                            <a asp-action="Edit" asp-route-id="@order.Id" class="btn btn-sm btn-warning"
+                               onclick="return confirm('@(order.Status == OrderStatus.Returned ? "هل أنت متأكد من حل الملاحظة؟" : "هل تريد تعديل الطلب؟")');">
+                                تحديث
+                            </a>
+
+                            <form asp-action="Delete" asp-route-id="@order.Id" method="post" class="d-inline"
+                                  onsubmit="return confirm('هل أنت متأكد من حذف الطلب؟');">
+                                <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="text-muted">لا توجد إجراءات</span>
+                        }
                     </td>
                 </tr>
             }

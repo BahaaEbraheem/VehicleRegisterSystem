@@ -24,54 +24,79 @@ namespace VehicleRegisterSystem.Web.Controllers
         // عرض كل الطلبات في الحالة "قيد الإجراء"
         public async Task<IActionResult> Index()
         {
-            var orders = await _orderService.GetByStatusAsync(OrderStatus.InProgress);
+            var orders = await _orderService.GetByStatusesAsync(OrderStatus.InProgress);
             return View(orders); // Views/BoardRegistrar/Index.cshtml
         }
 
         // GET: تسجيل لوحة السيارة
         [HttpGet]
-        public async Task<IActionResult> RegisterBoard(Guid id)
+        public async Task<IActionResult> RegisterBoard(Guid? id)
         {
-            var order = await _orderService.GetByIdAsync(id);
-            if (order.Status != OrderStatus.InProgress)
-                return Forbid();
+            RegisterBoardDto dto = null;
 
-            var dto = new RegisterBoardDto
+            if (id.HasValue)
             {
-                OrderId = id,
-                CarName = order.CarName,
-                Model = order.Model,
-                EngineNumber = order.EngineNumber
-            };
-            return View(dto); // Views/BoardRegistrar/RegisterBoard.cshtml
+                var order = await _orderService.GetByIdAsync(id.Value);
+                if (order != null && order.Status == OrderStatus.InProgress)
+                {
+                    dto = new RegisterBoardDto
+                    {
+                        OrderId = id.Value,
+                        CarName = order.CarName,
+                        Model = order.Model,
+                        EngineNumber = order.EngineNumber
+                    };
+                }
+            }
+
+            // إذا لم يوجد طلب صالح، نمرر DTO فارغ
+            if (dto == null)
+            {
+                dto = new RegisterBoardDto();
+                ViewData["DisableForm"] = true; // لتعطيل الحقول والأزرار
+            }
+
+            return View(dto);
         }
+
 
         // POST: تسجيل لوحة السيارة
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RegisterBoard(RegisterBoardDto dto)
         {
-            if (!ModelState.IsValid) return View(dto);
+            if (!ModelState.IsValid)
+                return View(dto);
 
-            try
+            // استدعاء الخدمة
+            var result = await _orderService.RegisterBoardAsync(
+                dto.OrderId,
+                dto.BoardNumber,
+                User.Identity.Name, // أو أي معرف المستخدم
+                User.Identity.Name
+            );
+
+            if (!result.IsSuccess)
             {
-                var success = await _orderService.RegisterBoardAsync(dto.OrderId, dto.BoardNumber, UserId, UserName);
-                if (success)
+                // إذا كانت هناك ValidationErrors
+                if (result.ValidationErrors.Any())
                 {
-                    TempData["Message"] = "Board registered successfully";
-                    return RedirectToAction("Index");
+                    foreach (var error in result.ValidationErrors)
+                    {
+                        ModelState.AddModelError(string.Empty, error);
+                    }
                 }
                 else
                 {
-                    ModelState.AddModelError("", "Board registration failed. Number might exist or order not in progress.");
-                    return View(dto);
+                    ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "حدث خطأ غير معروف.");
                 }
-            }
-            catch (InvalidOperationException ex)
-            {
-                ModelState.AddModelError("", ex.Message);
                 return View(dto);
             }
+
+            TempData["Message"] = "تم تسجيل لوحة السيارة بنجاح!";
+            return RedirectToAction(nameof(RegisterBoard), new { id = dto.OrderId });
         }
+
+
     }
 }

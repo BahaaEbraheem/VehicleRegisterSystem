@@ -26,8 +26,8 @@ namespace VehicleRegisterSystem.Application.Services
         public async Task<ServiceResult<OrderDto>> CreateAsync(CreateOrderDto dto, string userId, string userName)
         {
             //// ✅ التحقق: رقم المحرك مكرر
-            //if (await _repo.EngineNumberExistsAsync(dto.EngineNumber))
-            //    return ServiceResult<OrderDto>.Failure("رقم المحرك مكرر. الرجاء إدخال رقم آخر.", "DUPLICATE_ENGINE");
+            if (await _repo.EngineNumberExistsAsync(dto.EngineNumber))
+                return ServiceResult<OrderDto>.Failure("رقم المحرك مكرر. الرجاء إدخال رقم آخر.", "DUPLICATE_ENGINE");
 
             // ✅ التحقق: البيانات الأساسية
             var validationErrors = new List<string>();
@@ -89,7 +89,9 @@ namespace VehicleRegisterSystem.Application.Services
             var cacheKey = $"order_{id}";
             if (_cache.TryGetValue(cacheKey, out OrderDto cached)) return cached;
 
-            var order = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Order not found");
+            var order = await _repo.GetByIdAsync(id); // لا ترمي Exception
+            if (order == null) return null; // فقط إعادة null إذا لم يتم العثور
+
             var dto = Map(order);
             _cache.Set(cacheKey, dto, TimeSpan.FromMinutes(3));
             return dto;
@@ -102,17 +104,22 @@ namespace VehicleRegisterSystem.Application.Services
 
             var list = await _repo.GetByUserAsync(userId);
             // فقط الطلبات الجديدة أو المعادة
-            list = list.Where(o => o.Status == OrderStatus.New || o.Status == OrderStatus.Returned).ToList();
+            //list = list.ToList();
 
             var dtos = list.Select(Map).ToList();
             _cache.Set(cacheKey, dtos, TimeSpan.FromMinutes(2));
             return dtos;
         }
 
-        public async Task<IEnumerable<OrderDto>> GetByStatusAsync(OrderStatus status)
+        public async Task<IEnumerable<OrderDto>> GetNewAndReturnedAndModifiedOrdersAsync()
         {
-            var orders = await _repo.GetByStatusAsync(status); // _repo يستقبل Enum
-            return orders.Select(Map); // تحويل Entities إلى DTO
+            var orders = await _repo.GetNewAndReturnedAndModifiedOrdersAsync();
+            return orders.Select(Map);
+        }
+        public async Task<IEnumerable<OrderDto>> GetByStatusesAsync(OrderStatus[] statuses)
+        {
+            var orders = await _repo.GetByStatusesAsync(statuses);
+            return orders.Select(Map);
         }
 
         public async Task<OrderDto> UpdateAsync(Guid id, UpdateOrderDto dto, string userId, string userName)
@@ -135,6 +142,7 @@ namespace VehicleRegisterSystem.Application.Services
             order.ModifiedAt = DateTime.UtcNow;
             order.ModifiedById = userId;
             order.ModifiedByName = userName;
+            
 
             await _repo.UpdateAsync(order);
             _cache.Remove($"order_{id}");
@@ -176,7 +184,8 @@ namespace VehicleRegisterSystem.Application.Services
             if (order == null)
                 return ServiceResult<bool>.Failure("الطلب غير موجود", "ORDER_NOT_FOUND");
 
-            if (order.Status != OrderStatus.New)
+            // ✅ السماح للطلبات الجديدة أو المعادة فقط
+            if (order.Status != OrderStatus.New && order.Status != OrderStatus.Returned)
                 return ServiceResult<bool>.Failure("لا يمكن نقل الطلب من الحالة الحالية إلى قيد الإجراء", "INVALID_STATUS");
 
             // فحص: رقم المحرك مكرر
@@ -205,15 +214,22 @@ namespace VehicleRegisterSystem.Application.Services
         }
 
 
-        public async Task<bool> RegisterBoardAsync(Guid id, string boardNumber, string registrarId, string registrarName)
+        public async Task<ServiceResult<bool>> RegisterBoardAsync(Guid id, string boardNumber, string registrarId, string registrarName)
         {
-            var order = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Order not found");
+            // جلب الطلب
+            var order = await _repo.GetByIdAsync(id);
+            if (order == null)
+                return ServiceResult<bool>.Failure("الطلب غير موجود", "ORDER_NOT_FOUND");
+
+            // التحقق من حالة الطلب
             if (order.Status != OrderStatus.InProgress)
-                return false;
+                return ServiceResult<bool>.Failure("الطلب ليس في حالة قيد الإجراء", "INVALID_STATUS");
 
+            // التحقق من رقم اللوحة المكرر
             if (await _repo.BoardNumberExistsAsync(boardNumber, id))
-                return false;
+                return ServiceResult<bool>.Failure("رقم اللوحة موجود مسبقاً", "DUPLICATE_BOARD");
 
+            // تحديث بيانات الطلب
             order.BoardNumber = boardNumber;
             order.Status = OrderStatus.Approved;
             order.StatusChangedAt = DateTime.UtcNow;
@@ -222,11 +238,14 @@ namespace VehicleRegisterSystem.Application.Services
 
             await _repo.UpdateAsync(order);
 
+            // إزالة الكاش
             _cache.Remove($"order_{id}");
             _cache.Remove($"user_orders_{order.CreatedById}");
 
-            return true;
+            // نجاح العملية
+            return ServiceResult<bool>.Success(true);
         }
+
 
         private OrderDto Map(Order o) => new OrderDto
         {
