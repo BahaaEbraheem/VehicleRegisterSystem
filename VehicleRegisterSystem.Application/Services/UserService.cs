@@ -6,6 +6,7 @@ using VehicleRegisterSystem.Application.DTOs.AuthenticationDTOs;
 using VehicleRegisterSystem.Application.Interfaces;
 using VehicleRegisterSystem.Application.Validation;
 using VehicleRegisterSystem.Domain;
+using VehicleRegisterSystem.Domain.Enums;
 using VehicleRegisterSystem.Infrastructure.Repositories;
 
 namespace VehicleRegisterSystem.Application.Services
@@ -19,10 +20,13 @@ namespace VehicleRegisterSystem.Application.Services
         private readonly IUserRepository _userRepository;
         private readonly ILogger<UserService> _logger;
         private readonly UserManager<ApplicationUser> _userManager;
-        public UserService(UserManager<ApplicationUser> userManager,
+        private readonly IOrderService _orderService;
+        public UserService(IOrderService orderService,
+            UserManager<ApplicationUser> userManager,
             IUserRepository userRepository,ILogger<UserService> logger)
         {
-            _userManager= userManager;
+            _orderService=  orderService;
+            _userManager = userManager;
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -295,7 +299,16 @@ namespace VehicleRegisterSystem.Application.Services
                     _logger.LogWarning("محاولة حذف مستخدم غير موجود: {UserId} - Attempt to delete non-existing user", id);
                     return ServiceResult<bool>.Failure("المستخدم غير موجود - User not found");
                 }
-          
+
+                // جلب كل الطلبات الخاصة بالمستخدم
+                var userOrders = await _orderService.GetForUserAsync(id);
+
+                // التحقق من أن كل الطلبات مسودة
+                if (userOrders.Any(o => o.Status != OrderStatus.Draft))
+                {
+                    _logger.LogWarning("لا يمكن حذف المستخدم {UserId} لأن لديه طلبات ليست مسودة", id);
+                    return ServiceResult<bool>.Failure("لا يمكن حذف المستخدم لأن لديه طلبات ليست مسودة - Cannot delete user with non-draft orders");
+                }
                 _logger.LogDebug("حذف المستخدم {UserId} - Deleting user", id);
                 var success = await _userRepository.DeleteAsync(id);
 

@@ -9,7 +9,7 @@ using VehicleRegisterSystem.Domain.Enums;
 
 namespace VehicleRegisterSystem.Web.Controllers
 {
-    [Authorize(Roles = "BoardRegistrar,Admin")]
+    [Authorize(Roles = "BoardRegistrar,Administrator")]
     public class BoardRegistrarController : Controller
     {
         private readonly IOrderService _orderService;
@@ -96,7 +96,7 @@ namespace VehicleRegisterSystem.Web.Controllers
             TempData["Message"] = "تم تسجيل لوحة السيارة بنجاح!";
             return RedirectToAction(nameof(RegisterBoard), new { id = dto.OrderId });
         }
-        [Authorize(Roles = "BoardRegistrar,Admin")]
+        [Authorize(Roles = "BoardRegistrar,Administrator")]
         public async Task<IActionResult> ApprovedOrders()
         {
             // جلب كل الطلبات التي تم تسجيلها بنجاح

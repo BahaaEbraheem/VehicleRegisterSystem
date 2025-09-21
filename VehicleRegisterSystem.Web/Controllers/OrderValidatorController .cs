@@ -7,7 +7,7 @@ using VehicleRegisterSystem.Domain.Enums;
 
 namespace VehicleRegisterSystem.Web.Controllers
 {
-    [Authorize(Roles = "OrderValidator,Admin")]
+    [Authorize(Roles = "OrderValidator,Administrator")]
     public class OrderValidatorController : Controller
     {
         private readonly IOrderService _orderService;

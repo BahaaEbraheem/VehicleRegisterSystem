@@ -123,11 +123,12 @@
                     @if (isLoggedIn)
                     {
                         <ul class="navbar-nav me-auto">
-                            @if (isUser)
+                            @* روابط لجميع المستخدمين *@
+                            @if (isUser || isAdmin)
                             {
                                 <li class="nav-item">
                                     <a class="nav-link" href="/Orders/Index">
-                                        <i class="fas fa-car me-1"></i> طلباتي
+                                        <i class="fas fa-car me-1"></i> الطلبات الحديثة والمعادة
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -136,24 +137,33 @@
                                     </a>
                                 </li>
                             }
-                            else if (isOrderValidator)
+
+                            @* روابط المدققين *@
+                            @if (isOrderValidator || isAdmin)
                             {
-                                <li class="nav-item">
-                                    <a class="nav-link" href="/OrderValidator/PendingValidation">
-                                        <i class="fas fa-tasks me-1"></i> الطلبات الجديدة
-                                    </a>
-                                </li>
+                               
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/OrderValidator/PendingValidation">
+                                            <i class="fas fa-tasks me-1"></i> الطلبات الغير مدققة 
+                                        </a>
+                                    </li>
+                            
+                              
+                            }
+                            @if (isOrderValidator)
+                            {
                                 <li class="nav-item">
                                     <a class="nav-link" href="/OrderValidator/InReview">
                                         <i class="fas fa-search me-1"></i> الطلبات قيد الإجراء
                                     </a>
                                 </li>
                             }
-                            else if (isBoardRegistrar)
+                            @* روابط مسجلي اللوحات *@
+                            @if (isBoardRegistrar || isAdmin)
                             {
                                 <li class="nav-item">
                                     <a class="nav-link" href="/BoardRegistrar/Index">
-                                        <i class="fas fa-cogs me-1"></i> الطلبات قيد الإجراء
+                                        <i class="fas fa-cogs me-1"></i> الطلبات الغير مسجلة
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -163,27 +173,20 @@
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" href="/BoardRegistrar/ApprovedOrders">
-                                        <i class="fas fa-id-card me-1"></i>الطلبات الناجحة 
+                                        <i class="fas fa-id-card me-1"></i> الطلبات الناجحة
                                     </a>
                                 </li>
                             }
-                            else if (isAdmin)
+
+                            @* روابط الإدارة *@
+                            @if (isAdmin)
                             {
                                 <li class="nav-item">
                                     <a class="nav-link" href="/Users/Index">
                                         <i class="fas fa-users me-1"></i> إدارة المستخدمين
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="/Orders/Index">
-                                        <i class="fas fa-list me-1"></i> إدارة الطلبات
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="/Admin/Dashboard">
-                                        <i class="fas fa-tachometer-alt me-1"></i> لوحة التحكم
-                                    </a>
-                                </li>
+                          
                             }
                         </ul>
 
@@ -216,6 +219,8 @@
                             </li>
                         </ul>
                     }
+
+                
                 </div>
             </div>
         </nav>

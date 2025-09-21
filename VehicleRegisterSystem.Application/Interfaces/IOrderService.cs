@@ -13,7 +13,7 @@ namespace VehicleRegisterSystem.Application.Interfaces
     {
         Task<ServiceResult<OrderDto>> CreateAsync(CreateOrderDto dto, string userId, string userName);
         Task<OrderDto> UpdateAsync(Guid id, UpdateOrderDto dto, string userId, string userName);
-        Task DeleteAsync(Guid id, string userId, string userName);
+        Task<ServiceResult<bool>> DeleteAsync(Guid id, string userId, string userName);
         Task<ServiceResult<bool>> ReturnToUserAsync(Guid id, string validatorId, string validatorName, string comment);
         Task<ServiceResult<bool>> SetInProgressAsync(Guid id, string validatorId, string validatorName);
         Task<ServiceResult<bool>> RegisterBoardAsync(Guid id, string boardNumber, string registrarId, string registrarName);

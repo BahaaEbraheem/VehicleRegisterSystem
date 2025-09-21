@@ -70,20 +70,28 @@ namespace VehicleRegisterSystem.Application.Services
         }
 
 
-        public async Task DeleteAsync(Guid id, string userId, string userName)
+
+        public async Task<ServiceResult<bool>> DeleteAsync(Guid id, string userId, string userName)
         {
-            var order = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Order not found");
-            if (order.Status != OrderStatus.New && order.Status != OrderStatus.Returned)
-                throw new InvalidOperationException("Cannot delete in current state");
-            // soft delete
+            var order = await _repo.GetByIdAsync(id);
+            if (order == null)
+                return ServiceResult<bool>.Failure("الطلب غير موجود");
+
+            if (order.Status != OrderStatus.Draft)
+                return ServiceResult<bool>.ValidationFailure(new List<string> { "لا يمكن حذف الطلب إلا إذا كان مسودة" });
+
             order.IsDeleted = true;
             order.DeletedAt = DateTime.UtcNow;
             order.DeletedById = userId;
             order.DeletedByName = userName;
+
             await _repo.UpdateAsync(order);
             _cache.Remove($"order_{id}");
             _cache.Remove($"user_orders_{order.CreatedById}");
+
+            return ServiceResult<bool>.Success(true);
         }
+
 
         public async Task<OrderDto> GetByIdAsync(Guid id)
         {

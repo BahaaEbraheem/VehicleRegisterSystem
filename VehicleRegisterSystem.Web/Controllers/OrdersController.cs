@@ -123,17 +123,24 @@ namespace VehicleRegisterSystem.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(Guid id)
         {
-            try
+            var result = await _service.DeleteAsync(id, UserId, UserName);
+
+            if (result.IsSuccess)
             {
-                await _service.DeleteAsync(id, UserId, UserName);
                 TempData["SuccessMessage"] = "تم حذف الطلب بنجاح";
             }
-            catch (Exception ex)
+            else if (result.ValidationErrors?.Any() == true)
             {
-                TempData["ErrorMessage"] = "حدث خطأ أثناء الحذف: " + ex.Message;
+                TempData["ErrorMessage"] = string.Join(" | ", result.ValidationErrors);
             }
+            else
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage ?? "حدث خطأ أثناء الحذف";
+            }
+
             return RedirectToAction(nameof(Index));
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
