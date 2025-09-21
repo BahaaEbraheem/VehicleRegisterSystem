@@ -143,7 +143,7 @@ namespace VehicleRegisterSystem.Application.Services
         /// تغيير كلمة المرور
         /// Change password
         /// </summary>
-        public async Task<ServiceResult<bool>> ChangePasswordAsync(int userId, ChangePasswordDto changePasswordDto)
+        public async Task<ServiceResult<bool>> ChangePasswordAsync(string userId, ChangePasswordDto changePasswordDto)
         {
             try
             {

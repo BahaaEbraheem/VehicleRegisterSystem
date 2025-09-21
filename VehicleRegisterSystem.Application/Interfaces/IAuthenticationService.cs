@@ -26,7 +26,7 @@ namespace VehicleRegisterSystem.Application.Interfaces
         /// تغيير كلمة المرور
         /// Change password
         /// </summary>
-        Task<ServiceResult<bool>> ChangePasswordAsync(int userId, ChangePasswordDto changePasswordDto);
+        Task<ServiceResult<bool>> ChangePasswordAsync(string userId, ChangePasswordDto changePasswordDto);
 
         /// <summary>
         /// التحقق من وجود البريد الإلكتروني

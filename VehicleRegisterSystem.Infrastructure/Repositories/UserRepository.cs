@@ -42,7 +42,7 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
         /// حذف مستخدم
         /// Delete a user by ID
         /// </summary>
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(string id)
         {
             var user = await _userManager.FindByIdAsync(id.ToString());
             if (user == null) return false;
@@ -96,7 +96,7 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
         /// الحصول على مستخدم بالمعرف
         /// Get a user by ID
         /// </summary>
-        public async Task<ApplicationUser?> GetByIdAsync(int id)
+        public async Task<ApplicationUser?> GetByIdAsync(string id)
         {
             return await _userManager.FindByIdAsync(id.ToString());
         }

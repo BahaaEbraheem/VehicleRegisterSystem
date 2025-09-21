@@ -36,15 +36,28 @@
                         var isUser = User.IsInRole("User");
                     }
 
-
+                    <!-- رسائل الأخطاء من Model -->
                     @if (!string.IsNullOrEmpty(Model?.ErrorMessage))
                     {
                         <div class="alert alert-danger">@Html.Raw(Model.ErrorMessage)</div>
                     }
 
+                    <!-- رسائل النجاح من Model -->
                     @if (!string.IsNullOrEmpty(Model?.SuccessMessage))
                     {
                         <div class="alert alert-success">@Model.SuccessMessage</div>
+                    }
+
+                    <!-- رسائل النجاح من TempData -->
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+                    }
+
+                    <!-- رسائل الأخطاء من TempData -->
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
                     }
 
                     <!-- نموذج التسجيل - Registration Form -->

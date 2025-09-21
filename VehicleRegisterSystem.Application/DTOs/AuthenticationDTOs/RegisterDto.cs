@@ -12,8 +12,9 @@ namespace VehicleRegisterSystem.Application.DTOs.AuthenticationDTOs
     /// نموذج تسجيل مستخدم جديد
     /// Register new user model
     /// </summary>
-    public class RegisterDto
+    public class RegisterDto : IValidatableObject
     {
+        public string? Id { get; set; }
         /// <summary>
         /// الاسم الأول
         /// First name
@@ -84,5 +85,25 @@ namespace VehicleRegisterSystem.Application.DTOs.AuthenticationDTOs
         /// User role (for administrators only)
         /// </summary>
         public UserRole Role { get; set; } = UserRole.User;
+
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (!string.IsNullOrEmpty(Password))
+            {
+                if (string.IsNullOrEmpty(ConfirmPassword))
+                {
+                    yield return new ValidationResult(
+                        "تأكيد كلمة المرور مطلوب - Password confirmation is required",
+                        new[] { nameof(ConfirmPassword) });
+                }
+                else if (Password != ConfirmPassword)
+                {
+                    yield return new ValidationResult(
+                        "كلمة المرور وتأكيدها غير متطابقتين - Password and confirmation do not match",
+                        new[] { nameof(ConfirmPassword) });
+                }
+            }
+        }
     }
 }

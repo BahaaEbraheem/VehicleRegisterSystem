@@ -111,18 +111,20 @@ namespace VehicleRegisterSystem.Web.Controllers
         {
             if (string.IsNullOrEmpty(id)) return NotFound();
 
-            var userResult = await _userService.GetUserByIdAsync(int.Parse(id));
+            var userResult = await _userService.GetUserByIdAsync(id);
             if (!userResult.IsSuccess) return NotFound();
 
             var user = userResult.Data!;
             var names = user.FullName.Split(' ');
-            var model = new RegisterDto
+            var model = new EditUserDto
             {
+                Id = user.Id,
                 FirstName = names.First(),
                 LastName = names.Length > 1 ? names[1] : "",
                 Email = user.Email,
-                PhoneNumber = user.PhoneNumber,
+                PhoneNumber = user.PhoneNumber ?? string.Empty, // not nullable
                 Role = (UserRole)user.Role
+                // Password and ConfirmPassword stay empty on GET
             };
 
             ViewBag.Roles = Enum.GetValues(typeof(UserRole)).Cast<UserRole>();
@@ -133,7 +135,7 @@ namespace VehicleRegisterSystem.Web.Controllers
         // POST: Users/Edit/{id}
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, RegisterDto model)
+        public async Task<IActionResult> Edit(EditUserDto model)
         {
             if (!ModelState.IsValid)
             {
@@ -141,7 +143,20 @@ namespace VehicleRegisterSystem.Web.Controllers
                 return View(model);
             }
 
-            var updateResult = await _userService.UpdateUserAsync(id, model);
+            // Map EditUserDto → RegisterDto
+            var registerDto = new RegisterDto
+            {
+                Id = model.Id,
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                Email = model.Email,
+                PhoneNumber = string.IsNullOrWhiteSpace(model.PhoneNumber) ? null : model.PhoneNumber,
+                Password = string.IsNullOrWhiteSpace(model.Password) ? null : model.Password,
+                ConfirmPassword = string.IsNullOrWhiteSpace(model.ConfirmPassword) ? null : model.ConfirmPassword,
+                Role = model.Role
+            };
+
+            var updateResult = await _userService.UpdateUserAsync(model.Id, registerDto);
 
             if (!updateResult.IsSuccess)
             {
@@ -155,14 +170,16 @@ namespace VehicleRegisterSystem.Web.Controllers
         }
 
 
+
+
         // POST: Users/Delete/{id}
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int userId)
+        public async Task<IActionResult> Delete(string id)
         {
             try
             {
-                var result = await _userService.DeleteUserAsync(userId);
+                var result = await _userService.DeleteUserAsync(id);
 
                 if (result.IsSuccess)
                     TempData["SuccessMessage"] = "تم حذف المستخدم بنجاح!";
@@ -176,6 +193,31 @@ namespace VehicleRegisterSystem.Web.Controllers
                 TempData["ErrorMessage"] = "حدث خطأ أثناء حذف المستخدم";
                 return RedirectToAction(nameof(Index));
             }
+        }
+
+        // GET: Users/Details/{id}
+        public async Task<IActionResult> Details(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return NotFound();
+
+            var userResult = await _userService.GetUserByIdAsync(id);
+            if (!userResult.IsSuccess) return NotFound();
+
+            var user = userResult.Data!;
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var model = new UserViewModel
+            {
+                Id = user.Id,
+                FullName = user.FullName,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                MembershipDate = user.LockoutEnd?.UtcDateTime,
+                IsActive = !user.LockoutEnabled,
+                Role = roles.FirstOrDefault() ?? "User"
+            };
+
+            return View(model);
         }
     }
 }

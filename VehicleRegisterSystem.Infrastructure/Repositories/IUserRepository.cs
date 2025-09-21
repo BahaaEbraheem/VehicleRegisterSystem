@@ -19,7 +19,7 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
         /// الحصول على مستخدم بالمعرف
         /// Get user by ID
         /// </summary>
-        Task<ApplicationUser?> GetByIdAsync(int id);
+        Task<ApplicationUser?> GetByIdAsync(string id);
 
         /// <summary>
         /// الحصول على مستخدم بالبريد الإلكتروني
@@ -55,7 +55,7 @@ namespace VehicleRegisterSystem.Infrastructure.Repositories
         /// حذف مستخدم
         /// Delete a user
         /// </summary>
-        Task<bool> DeleteAsync(int id);
+        Task<bool> DeleteAsync(string id);
 
         /// <summary>
         /// تفعيل أو إلغاء تفعيل مستخدم

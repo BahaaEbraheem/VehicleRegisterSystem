@@ -51,11 +51,11 @@ namespace VehicleRegisterSystem.Application.Services
         /// الحصول على مستخدم بالمعرف
         /// Get user by ID
         /// </summary>
-        public async Task<ServiceResult<ApplicationUser>> GetUserByIdAsync(int id)
+        public async Task<ServiceResult<ApplicationUser>> GetUserByIdAsync(string id)
         {
             try
             {
-                if (id <= 0)
+                if (string.IsNullOrWhiteSpace(id))
                 {
                     _logger.LogWarning("تم تمرير معرف مستخدم غير صحيح: {UserId} - Invalid user ID provided", id);
                     return ServiceResult<ApplicationUser>.Failure("معرف المستخدم غير صحيح - Invalid user ID");
@@ -278,11 +278,11 @@ namespace VehicleRegisterSystem.Application.Services
         /// حذف مستخدم
         /// Delete a user
         /// </summary>
-        public async Task<ServiceResult<bool>> DeleteUserAsync(int id)
+        public async Task<ServiceResult<bool>> DeleteUserAsync(string id)
         {
             try
             {
-                if (id <= 0)
+                if (string.IsNullOrWhiteSpace(id))
                 {
                     _logger.LogWarning("تم تمرير معرف مستخدم غير صحيح للحذف: {UserId} - Invalid user ID provided for deletion", id);
                     return ServiceResult<bool>.Failure("معرف المستخدم غير صحيح - Invalid user ID");
