@@ -28,7 +28,5 @@ namespace VehicleRegisterSystem.Application.Interfaces
         /// </summary>
         Task<ServiceResult<bool>> EmailExistsAsync(string email);
 
-
-
     }
 }
