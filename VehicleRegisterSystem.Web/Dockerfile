@@ -1,32 +1,38 @@
-# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
-
-# Depending on the operating system of the host machines(s) that will build or run the containers, the image specified in the FROM statement may need to be changed.
-# For more information, please see https://aka.ms/containercompat
-
-# This stage is used when running from VS in fast mode (Default for Debug configuration)
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-nanoserver-1809 AS base
+# Base image for runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
 EXPOSE 8080
-EXPOSE 8081
 
-
-# This stage is used to build the service project
-FROM mcr.microsoft.com/dotnet/sdk:9.0-nanoserver-1809 AS build
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
-COPY ["VehicleRegisterSystem.Web/VehicleRegisterSystem.Web.csproj", "VehicleRegisterSystem.Web/"]
-RUN dotnet restore "./VehicleRegisterSystem.Web/VehicleRegisterSystem.Web.csproj"
-COPY . .
-WORKDIR "/src/VehicleRegisterSystem.Web"
-RUN dotnet build "./VehicleRegisterSystem.Web.csproj" -c %BUILD_CONFIGURATION% -o /app/build
+WORKDIR /source
 
-# This stage is used to publish the service project to be copied to the final stage
+# ‰”Œ „·›«  «·„‘«—Ì⁄ (csproj) √Ê·«
+COPY VehicleRegisterSystem.Web/VehicleRegisterSystem.Web.csproj VehicleRegisterSystem.Web/
+COPY VehicleRegisterSystem.Application/VehicleRegisterSystem.Application.csproj VehicleRegisterSystem.Application/
+COPY VehicleRegisterSystem.Infrastructure/VehicleRegisterSystem.Infrastructure.csproj VehicleRegisterSystem.Infrastructure/
+COPY VehicleRegisterSystem.Domain/VehicleRegisterSystem.Domain.csproj VehicleRegisterSystem.Domain/
+COPY VehicleRegisterSystem.sln ./
+
+# «” ⁄«œ… «·Õ“„
+RUN dotnet restore "VehicleRegisterSystem.sln"
+
+# ‰”Œ »«ﬁÌ «·„·›« 
+COPY . .
+
+# «·œŒÊ· ⁄·Ï „Ã·œ Web project Ê»‰«¡Â
+WORKDIR "/source/VehicleRegisterSystem.Web"
+RUN dotnet build "VehicleRegisterSystem.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
+
+# Publish stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./VehicleRegisterSystem.Web.csproj" -c %BUILD_CONFIGURATION% -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "VehicleRegisterSystem.Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
-# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
+# Final stage
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+ENV ASPNETCORE_URLS=http://+:8080
 ENTRYPOINT ["dotnet", "VehicleRegisterSystem.Web.dll"]

@@ -110,7 +110,49 @@ if (!app.Environment.IsDevelopment())
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    await DbInitializer.SeedDataAsync(services);
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var context = services.GetRequiredService<AppDbContext>(); // Replace YourDbContext with your actual DbContext type
+
+    try
+    {
+        // Wait for database to be available with retry logic
+        var maxRetries = 10;
+        var retryDelay = TimeSpan.FromSeconds(2);
+
+        for (int i = 0; i < maxRetries; i++)
+        {
+            try
+            {
+                logger.LogInformation($"Attempting to connect to database (attempt {i + 1}/{maxRetries})...");
+
+                if (await context.Database.CanConnectAsync())
+                {
+                    logger.LogInformation("Database connection successful!");
+                    break;
+                }
+            }
+            catch (Exception ex) when (i < maxRetries - 1)
+            {
+                logger.LogWarning($"Database not ready yet. Retrying in {retryDelay.TotalSeconds} seconds...");
+                await Task.Delay(retryDelay);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to connect to database after all retry attempts");
+                throw;
+            }
+        }
+        // Apply migrations
+        await context.Database.MigrateAsync();
+        // Now seed the data
+        await DbInitializer.SeedDataAsync(services);
+        logger.LogInformation("Database seeding completed successfully!");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while seeding the database.");
+        throw; // Re-throw to ensure the app doesn't start with a faulty database
+    }
 }
 // ÅÖÇÝÉ ÇáÜ Middleware Ýí ÃÚáì ÇáÜ pipeline
 app.UseHttpsRedirection();
